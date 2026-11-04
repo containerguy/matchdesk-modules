@@ -1,0 +1,4 @@
+node_modules/
+dist/
+*.tgz
+!packages/module-sdk/test/fixtures/*.tgz
