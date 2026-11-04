@@ -41,6 +41,26 @@
           "publishedAt": "2026-11-04T08:03:08.681Z"
         }
       ]
+    },
+    {
+      "id": "telegram",
+      "name": {
+        "de": "Telegram",
+        "en": "Telegram"
+      },
+      "description": {
+        "de": "Rundnachrichten und Erinnerungen über einen eigenen Telegram-Bot. Konto verknüpfen per Klick.",
+        "en": "Event updates and reminders through your own Telegram bot. Link your account with one click."
+      },
+      "versions": [
+        {
+          "version": "1.0.0",
+          "matchdeskApi": 1,
+          "url": "https://github.com/containerguy/matchdesk-modules/releases/download/telegram-v1.0.0/telegram-1.0.0.tgz",
+          "sha256": "8b1ade0da6cbeb0861aeaf34ee0eb1d2ed7d142c60cabf746c9c4d84ede75397",
+          "publishedAt": "2026-11-04T09:16:28.846Z"
+        }
+      ]
     }
   ]
 }
