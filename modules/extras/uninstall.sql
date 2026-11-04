@@ -1,0 +1,9 @@
+DROP TABLE IF EXISTS extras_field_answers;
+DROP TABLE IF EXISTS extras_fields;
+DROP TABLE IF EXISTS extras_ride_seats;
+DROP TABLE IF EXISTS extras_rides;
+DROP TABLE IF EXISTS extras_payments;
+DROP TABLE IF EXISTS extras_costs;
+DROP TABLE IF EXISTS extras_install_done;
+DROP TABLE IF EXISTS extras_bring_claims;
+DROP TABLE IF EXISTS extras_items;
