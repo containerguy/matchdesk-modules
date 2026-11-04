@@ -4,7 +4,15 @@ import Database from "better-sqlite3";
 import express, { type Express } from "express";
 import { pathToFileURL } from "node:url";
 import { z } from "zod";
-import type { ModuleContext, ModuleRegister, ModuleUser, PushPayload, UserRole } from "./index";
+import type {
+  ModuleContext,
+  ModuleNotification,
+  ModuleNotificationChannel,
+  ModuleRegister,
+  ModuleUser,
+  PushPayload,
+  UserRole
+} from "./index";
 import type { ModuleManifest } from "./manifest";
 
 /**
@@ -28,6 +36,7 @@ CREATE TABLE users (
   username TEXT NOT NULL UNIQUE,
   display_name TEXT,
   email TEXT NOT NULL,
+  phone_number TEXT NOT NULL DEFAULT '',
   role TEXT NOT NULL DEFAULT 'user',
   locale TEXT,
   deleted_at TEXT
@@ -42,7 +51,7 @@ export type TestModuleOptions = {
   register?: ModuleRegister;
   settings?: Record<string, unknown>;
   secrets?: Record<string, string>;
-  users?: Array<{ id?: string; username: string; role?: UserRole; displayName?: string }>;
+  users?: Array<{ id?: string; username: string; role?: UserRole; displayName?: string; phoneNumber?: string }>;
 };
 
 export type TestModule = {
@@ -53,6 +62,13 @@ export type TestModule = {
   pushes: Array<{ userIds: string[]; payload: PushPayload }>;
   broadcasts: Array<{ event: string; data: unknown }>;
   audits: Array<Record<string, unknown>>;
+  /** Mit ctx.notifications.registerChannel angemeldete Kanäle (nach ID). */
+  channels: Map<string, ModuleNotificationChannel>;
+  /**
+   * Stellt eine Nachricht wie der Kern über einen Modulkanal zu: prüft isAvailable und ruft send.
+   * Gibt "sent", "unavailable" oder den Fehlertext zurück.
+   */
+  notify: (channelId: string, username: string, message?: Partial<ModuleNotification>) => Promise<string>;
   grant: (username: string, permission: string, mainEventId?: string | null) => void;
   setSettings: (settings: Record<string, unknown>) => void;
   stop: () => Promise<void>;
@@ -97,11 +113,12 @@ export async function createTestModule(options: TestModuleOptions): Promise<Test
     { username: "anna", role: "user" as const },
     { username: "max", role: "manager" as const }
   ]) {
-    db.prepare("INSERT INTO users (id, username, display_name, email, role) VALUES (?, ?, ?, ?, ?)").run(
+    db.prepare("INSERT INTO users (id, username, display_name, email, phone_number, role) VALUES (?, ?, ?, ?, ?, ?)").run(
       user.id ?? `u-${user.username}`,
       user.username,
       user.displayName ?? null,
       `${user.username}@example.test`,
+      user.phoneNumber ?? "",
       user.role ?? "user"
     );
   }
@@ -120,14 +137,35 @@ export async function createTestModule(options: TestModuleOptions): Promise<Test
   const pushes: TestModule["pushes"] = [];
   const broadcasts: TestModule["broadcasts"] = [];
   const audits: TestModule["audits"] = [];
+  const channels = new Map<string, ModuleNotificationChannel>();
   const timers = new Set<NodeJS.Timeout>();
   const cleanups: Array<() => unknown> = [];
   const router = express.Router();
 
   function findUser(username: string) {
     return db.prepare("SELECT * FROM users WHERE username = ?").get(username) as
-      | { id: string; username: string; display_name: string | null; email: string; role: UserRole; locale: string | null }
+      | {
+          id: string;
+          username: string;
+          display_name: string | null;
+          email: string;
+          phone_number: string;
+          role: UserRole;
+          locale: string | null;
+        }
       | undefined;
+  }
+
+  function toModuleUser(row: NonNullable<ReturnType<typeof findUser>>): ModuleUser {
+    return {
+      id: row.id,
+      username: row.username,
+      displayName: row.display_name,
+      email: row.email,
+      phoneNumber: row.phone_number,
+      role: row.role,
+      locale: row.locale
+    };
   }
 
   const ctx: ModuleContext = {
@@ -139,16 +177,7 @@ export async function createTestModule(options: TestModuleOptions): Promise<Test
     currentUser: (request) => {
       const name = request.get("x-test-user");
       const row = name ? findUser(name) : undefined;
-      if (!row) return undefined;
-      const user: ModuleUser = {
-        id: row.id,
-        username: row.username,
-        displayName: row.display_name,
-        email: row.email,
-        role: row.role,
-        locale: row.locale
-      };
-      return user;
+      return row ? toModuleUser(row) : undefined;
     },
     requireWrite: (request, response) => {
       if (!request.get("x-test-user")) {
@@ -185,6 +214,17 @@ export async function createTestModule(options: TestModuleOptions): Promise<Test
         pushes.push({ userIds, payload });
       }
     },
+    notifications: {
+      registerChannel: (channel) => {
+        // Gleiche Regeln wie im Kern (src/server/notifications/dispatcher.ts, modules/module-context.ts)
+        if (!/^[a-z][a-z0-9]{1,31}$/.test(channel.id) || channel.id === "mail" || channel.id === "push") {
+          throw new Error(`Ungültige Kanal-ID: ${channel.id}`);
+        }
+        if (!channel.id.startsWith(id)) throw new Error(`Kanal-ID ${channel.id} muss mit der Modul-ID ${id} beginnen.`);
+        channels.set(channel.id, channel);
+        cleanups.push(() => channels.delete(channel.id));
+      }
+    },
     realtime: { broadcast: (event, data) => broadcasts.push({ event, data }) },
     http: { fetch: (...args) => fetch(...args) },
     schedule: (intervalMs, task) => {
@@ -219,6 +259,30 @@ export async function createTestModule(options: TestModuleOptions): Promise<Test
     pushes,
     broadcasts,
     audits,
+    channels,
+    notify: async (channelId, username, message = {}) => {
+      const channel = channels.get(channelId);
+      if (!channel) throw new Error(`Kanal ${channelId} ist nicht angemeldet`);
+      const row = findUser(username);
+      if (!row) throw new Error(`Unbekannter Benutzer ${username}`);
+      const user = toModuleUser(row);
+      if (!channel.isAvailable(user)) return "unavailable";
+      try {
+        await channel.send(user, {
+          mainEventId: "event-1",
+          eventName: "Test-LAN",
+          subject: "Betreff",
+          body: "Text",
+          path: "#main-events",
+          url: "https://matchdesk.example.test/#main-events",
+          unsubscribeUrl: "https://matchdesk.example.test/api/notifications/unsubscribe/token",
+          ...message
+        });
+        return "sent";
+      } catch (error) {
+        return error instanceof Error ? error.message : String(error);
+      }
+    },
     grant: (username, permission, mainEventId = null) => {
       const user = findUser(username);
       if (!user) throw new Error(`Unbekannter Benutzer ${username}`);

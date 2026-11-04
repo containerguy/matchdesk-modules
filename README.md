@@ -66,9 +66,29 @@ Im Server prüft das Modul mit `ctx.can(user, "hallo.post", { mainEventId })`.
 ### Server-Kontext `ctx`
 
 `router` (Express, gemountet unter `/api/m/<id>`), `currentUser(req)`, `requireWrite(req, res)`, `can`,
-`settings.get()`, `env`, `db`, `audit`, `push.toUsers`, `realtime.broadcast`, `http.fetch`, `schedule`,
+`settings.get()`, `env`, `db`, `audit`, `push.toUsers`, `notifications.registerChannel`, `realtime.broadcast`,
+`http.fetch`, `schedule`,
 `on` (Kern-Ereignisse) und `onStop`. Die Typen stehen in `packages/module-sdk/src/index.ts`.
 CSRF für schreibende Anfragen prüft der Kern vor dem Modul.
+
+### Benachrichtigungskanäle
+
+Module wie SMS oder Telegram melden einen eigenen Kanal an. Benutzer schalten ihn im Profil ein (Opt-in),
+der Kern ruft `send` für Rundnachrichten und Erinnerungen auf und meldet den Kanal beim Ausschalten ab.
+
+```ts
+ctx.notifications.registerChannel({
+  id: "sms",                                   // beginnt mit der Modul-ID
+  label: { de: "SMS", en: "Text message" },
+  isAvailable: (user) => Boolean(user.phoneNumber),
+  unavailableHint: { de: "Telefonnummer im Profil fehlt", en: "Phone number missing" },
+  send: async (user, message) => {
+    // message: subject, body, eventName, path, url, unsubscribeUrl – schon in der Sprache des Empfängers
+  }
+});
+```
+
+In Tests stellt `mod.notify("sms", "anna", { subject: "Pizza" })` wie der Kern zu.
 
 ### Testen
 
