@@ -1,0 +1,55 @@
+{
+  "id": "telegram",
+  "name": {
+    "de": "Telegram",
+    "en": "Telegram"
+  },
+  "description": {
+    "de": "Rundnachrichten und Erinnerungen über einen eigenen Telegram-Bot. Konto verknüpfen per Klick.",
+    "en": "Event updates and reminders through your own Telegram bot. Link your account with one click."
+  },
+  "author": "Matchdesk",
+  "homepage": "https://github.com/containerguy/matchdesk-modules/tree/main/modules/telegram",
+  "license": "GPL-3.0-only",
+  "permissions": [
+    {
+      "key": "telegram.receive",
+      "label": {
+        "de": "Event-Infos per Telegram bekommen",
+        "en": "Receive event updates on Telegram"
+      },
+      "defaultRoles": [
+        "user"
+      ]
+    },
+    {
+      "key": "telegram.manage",
+      "label": {
+        "de": "Telegram-Bot prüfen und testen",
+        "en": "Check and test the Telegram bot"
+      }
+    }
+  ],
+  "menu": [
+    {
+      "path": "",
+      "label": {
+        "de": "Telegram",
+        "en": "Telegram"
+      },
+      "order": 70,
+      "permission": "telegram.receive"
+    }
+  ],
+  "adminPage": true,
+  "tables": [
+    "telegram_links",
+    "telegram_link_codes"
+  ],
+  "secrets": [
+    "TELEGRAM_BOT_TOKEN"
+  ],
+  "network": [
+    "api.telegram.org"
+  ]
+}
