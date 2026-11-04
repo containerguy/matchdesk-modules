@@ -1,0 +1,9 @@
+DROP TABLE IF EXISTS pizza_order_line_extras;
+DROP TABLE IF EXISTS pizza_menu_extra_categories;
+DROP TABLE IF EXISTS pizza_order_lines;
+DROP TABLE IF EXISTS pizza_orders;
+DROP TABLE IF EXISTS pizza_sessions;
+DROP TABLE IF EXISTS pizza_menu_extras;
+DROP TABLE IF EXISTS pizza_menu_variants;
+DROP TABLE IF EXISTS pizza_menu_items;
+DROP TABLE IF EXISTS pizza_menu_categories;

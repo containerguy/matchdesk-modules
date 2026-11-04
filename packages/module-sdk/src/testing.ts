@@ -39,9 +39,35 @@ CREATE TABLE users (
   phone_number TEXT NOT NULL DEFAULT '',
   role TEXT NOT NULL DEFAULT 'user',
   locale TEXT,
-  deleted_at TEXT
+  current_main_event_id TEXT REFERENCES main_events(id) ON DELETE SET NULL,
+  notifications_enabled INTEGER NOT NULL DEFAULT 1,
+  deleted_at TEXT,
+  created_at TEXT,
+  updated_at TEXT
 );
-CREATE TABLE main_events (id TEXT PRIMARY KEY, name TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'planned');
+CREATE TABLE main_events (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'planned',
+  visibility TEXT NOT NULL DEFAULT 'public',
+  planned_start_at TEXT,
+  planned_end_at TEXT,
+  started_at TEXT,
+  ended_at TEXT
+);
+CREATE TABLE main_event_participants (
+  id TEXT PRIMARY KEY,
+  main_event_id TEXT NOT NULL REFERENCES main_events(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  status TEXT NOT NULL
+);
+CREATE TABLE main_event_invites (
+  id TEXT PRIMARY KEY,
+  main_event_id TEXT NOT NULL REFERENCES main_events(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  invited_by_user_id TEXT,
+  created_at TEXT
+);
 CREATE TABLE game_events (id TEXT PRIMARY KEY, title TEXT NOT NULL, main_event_id TEXT REFERENCES main_events(id) ON DELETE SET NULL);
 `;
 
@@ -59,7 +85,8 @@ export type TestModule = {
   ctx: ModuleContext;
   db: Database.Database;
   manifest: Pick<ModuleManifest, "id" | "permissions" | "tables" | "secrets">;
-  pushes: Array<{ userIds: string[]; payload: PushPayload }>;
+  /** Push-Aufrufe; `to` ist "users", "all" oder "event:<id>". */
+  pushes: Array<{ userIds: string[]; payload: PushPayload; to?: string }>;
   broadcasts: Array<{ event: string; data: unknown }>;
   audits: Array<Record<string, unknown>>;
   /** Mit ctx.notifications.registerChannel angemeldete Kanäle (nach ID). */
@@ -70,6 +97,14 @@ export type TestModule = {
    */
   notify: (channelId: string, username: string, message?: Partial<ModuleNotification>) => Promise<string>;
   grant: (username: string, permission: string, mainEventId?: string | null) => void;
+  /** Legt ein Event an (für ctx.events). */
+  addEvent: (event: { id: string; name: string; status?: "planned" | "running" | "ended"; visibility?: "public" | "private" }) => void;
+  /** Meldet einen Benutzer zu einem Event an (Standard: „dabei“). */
+  join: (username: string, mainEventId: string, status?: "joined" | "interested" | "waitlisted" | "declined") => void;
+  /** Lädt einen Benutzer zu einem privaten Event ein. */
+  invite: (username: string, mainEventId: string) => void;
+  /** Setzt das aktuelle Event eines Benutzers (globaler Umschalter). */
+  setCurrentEvent: (username: string, mainEventId: string | null) => void;
   setSettings: (settings: Record<string, unknown>) => void;
   stop: () => Promise<void>;
   userId: (username: string) => string;
@@ -87,6 +122,23 @@ function defaultsFromSchema(schema: unknown) {
   );
 }
 
+/**
+ * SQLite im Speicher mit den Kerntabellen und den Migrationen des Moduls, ohne Benutzer.
+ * Für Tests des Domain-Codes, die keinen Router brauchen.
+ */
+export function createTestDatabase(moduleDir: string): Database.Database {
+  const db = new Database(":memory:");
+  db.pragma("foreign_keys = ON");
+  db.exec(CORE_SCHEMA);
+  const migrationsDir = path.join(moduleDir, "migrations");
+  if (fs.existsSync(migrationsDir)) {
+    for (const file of fs.readdirSync(migrationsDir).filter((name) => name.endsWith(".sql")).sort()) {
+      db.exec(fs.readFileSync(path.join(migrationsDir, file), "utf8"));
+    }
+  }
+  return db;
+}
+
 export async function createTestModule(options: TestModuleOptions): Promise<TestModule> {
   const moduleJson = JSON.parse(fs.readFileSync(path.join(options.moduleDir, "module.json"), "utf8")) as {
     id: string;
@@ -97,16 +149,7 @@ export async function createTestModule(options: TestModuleOptions): Promise<Test
   };
   const id = moduleJson.id;
   const permissions = moduleJson.permissions ?? [];
-  const db = new Database(":memory:");
-  db.pragma("foreign_keys = ON");
-  db.exec(CORE_SCHEMA);
-
-  const migrationsDir = path.join(options.moduleDir, "migrations");
-  if (fs.existsSync(migrationsDir)) {
-    for (const file of fs.readdirSync(migrationsDir).filter((name) => name.endsWith(".sql")).sort()) {
-      db.exec(fs.readFileSync(path.join(migrationsDir, file), "utf8"));
-    }
-  }
+  const db = createTestDatabase(options.moduleDir);
 
   for (const user of options.users ?? [
     { username: "admin", role: "admin" as const },
@@ -125,11 +168,15 @@ export async function createTestModule(options: TestModuleOptions): Promise<Test
 
   const grants: Array<{ userId: string; permission: string; mainEventId: string | null }> = [];
   let settingsSchema = moduleJson.settings;
+  let settingsZod: z.ZodType | undefined;
   for (const ext of [".ts", ".mts", ".js", ".mjs"]) {
     const file = path.join(options.moduleDir, "src", `settings${ext}`);
     if (fs.existsSync(file)) {
       const loaded = (await import(pathToFileURL(file).href)) as { settings?: z.ZodType };
-      if (loaded.settings) settingsSchema = z.toJSONSchema(loaded.settings, { io: "input" });
+      if (loaded.settings) {
+        settingsZod = loaded.settings;
+        settingsSchema = z.toJSONSchema(loaded.settings, { io: "input" });
+      }
       break;
     }
   }
@@ -200,7 +247,55 @@ export async function createTestModule(options: TestModuleOptions): Promise<Test
           (grant.mainEventId === null || (def?.scopable && grant.mainEventId === (canOptions.mainEventId ?? null)))
       );
     },
-    settings: { get: () => ({ ...settings }) },
+    scopedEventIds: (actor, key) =>
+      actor
+        ? grants.filter((grant) => grant.userId === actor.id && grant.permission === key && grant.mainEventId).map((grant) => grant.mainEventId!)
+        : [],
+    settings: {
+      get: () => ({ ...settings }),
+      set: (values) => {
+        const next = { ...settings, ...values };
+        settings = (settingsZod ? settingsZod.parse(next) : next) as Record<string, unknown>;
+        audits.push({ action: `${id}.settings_updated`, keys: Object.keys(values) });
+        return { ...settings };
+      }
+    },
+    events: {
+      get: (mainEventId) => {
+        const row = db.prepare("SELECT * FROM main_events WHERE id = ?").get(mainEventId) as
+          | Record<string, string | null>
+          | undefined;
+        return row
+          ? {
+              id: row.id!,
+              name: row.name!,
+              status: row.status as "planned" | "running" | "ended",
+              visibility: row.visibility as "public" | "private",
+              plannedStartAt: row.planned_start_at,
+              plannedEndAt: row.planned_end_at,
+              startedAt: row.started_at,
+              endedAt: row.ended_at
+            }
+          : null;
+      },
+      currentIdOf: (user) => {
+        const row = db
+          .prepare("SELECT e.id, e.status FROM users u JOIN main_events e ON e.id = u.current_main_event_id WHERE u.id = ?")
+          .get(user.id) as { id: string; status: string } | undefined;
+        return row && row.status !== "ended" ? row.id : null;
+      },
+      canSee: (user, mainEventId) => {
+        if (!user) return false;
+        const event = db.prepare("SELECT visibility FROM main_events WHERE id = ?").get(mainEventId) as { visibility: string } | undefined;
+        if (!event) return false;
+        if (event.visibility === "public" || user.role === "admin" || user.role === "manager") return true;
+        return Boolean(db.prepare("SELECT 1 FROM main_event_invites WHERE main_event_id = ? AND user_id = ?").get(mainEventId, user.id));
+      },
+      participantStatus: (mainEventId, userId) =>
+        ((db.prepare("SELECT status FROM main_event_participants WHERE main_event_id = ? AND user_id = ?").get(mainEventId, userId) as
+          | { status: "joined" | "interested" | "waitlisted" | "declined" }
+          | undefined)?.status ?? null)
+    },
     env: (name) => {
       if (!(moduleJson.secrets ?? []).includes(name)) throw new Error(`Geheimnis ${name} nicht im Manifest angemeldet`);
       return options.secrets?.[name];
@@ -211,7 +306,18 @@ export async function createTestModule(options: TestModuleOptions): Promise<Test
     },
     push: {
       toUsers: async (userIds, payload) => {
-        pushes.push({ userIds, payload });
+        pushes.push({ userIds, payload, to: "users" });
+      },
+      toAll: async (payload) => {
+        pushes.push({ userIds: [], payload, to: "all" });
+      },
+      toEventParticipants: async (mainEventId, payload) => {
+        const userIds = (
+          db.prepare("SELECT user_id FROM main_event_participants WHERE main_event_id = ? AND status = 'joined'").all(mainEventId) as Array<{
+            user_id: string;
+          }>
+        ).map((row) => row.user_id);
+        pushes.push({ userIds, payload, to: `event:${mainEventId}` });
       }
     },
     notifications: {
@@ -287,6 +393,29 @@ export async function createTestModule(options: TestModuleOptions): Promise<Test
       const user = findUser(username);
       if (!user) throw new Error(`Unbekannter Benutzer ${username}`);
       grants.push({ userId: user.id, permission, mainEventId });
+    },
+    addEvent: (event) => {
+      db.prepare("INSERT INTO main_events (id, name, status, visibility) VALUES (?, ?, ?, ?)").run(
+        event.id,
+        event.name,
+        event.status ?? "running",
+        event.visibility ?? "public"
+      );
+    },
+    join: (username, mainEventId, status = "joined") => {
+      const user = findUser(username);
+      if (!user) throw new Error(`Unbekannter Benutzer ${username}`);
+      db.prepare(
+        "INSERT INTO main_event_participants (id, main_event_id, user_id, status) VALUES (?, ?, ?, ?)"
+      ).run(`p-${mainEventId}-${user.id}`, mainEventId, user.id, status);
+    },
+    invite: (username, mainEventId) => {
+      const user = findUser(username);
+      if (!user) throw new Error(`Unbekannter Benutzer ${username}`);
+      db.prepare("INSERT INTO main_event_invites (id, main_event_id, user_id) VALUES (?, ?, ?)").run(`i-${mainEventId}-${user.id}`, mainEventId, user.id);
+    },
+    setCurrentEvent: (username, mainEventId) => {
+      db.prepare("UPDATE users SET current_main_event_id = ? WHERE username = ?").run(mainEventId, username);
     },
     setSettings: (next) => {
       settings = { ...settings, ...next };

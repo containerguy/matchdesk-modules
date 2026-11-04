@@ -74,6 +74,20 @@ export type CoreEventMap = {
 
 export type PushPayload = { title: string; body: string; url?: string; requireInteraction?: boolean };
 
+/** Sicht eines Moduls auf ein Event des Kerns. */
+export type ModuleMainEvent = {
+  id: string;
+  name: string;
+  status: "planned" | "running" | "ended";
+  visibility: "public" | "private";
+  plannedStartAt: string | null;
+  plannedEndAt: string | null;
+  startedAt: string | null;
+  endedAt: string | null;
+};
+
+export type ModuleParticipantStatus = "joined" | "interested" | "waitlisted" | "declined";
+
 /** better-sqlite3-Verbindung des Kerns (synchron). */
 export type ModuleDatabase = BetterSqlite3.Database;
 
@@ -88,7 +102,22 @@ export type ModuleContext = {
   currentUser: (request: Request) => ModuleUser | undefined;
   requireWrite: (request: Request, response: Response) => boolean;
   can: (user: PermissionActor, key: string, options?: { mainEventId?: string | null }) => boolean;
-  settings: { get: () => Record<string, unknown> };
+  /** Events, für die der Benutzer `key` nur per Event-Vergabe hat. Nur eigene Rechte (`<id>.…`). */
+  scopedEventIds: (user: PermissionActor, key: string) => string[];
+  settings: {
+    get: () => Record<string, unknown>;
+    /** Einzelne Werte ändern (gegen das Schema geprüft, im Audit-Log). Wirft bei ungültigen Werten. */
+    set: (values: Record<string, unknown>, actor: { id: string; username: string; role: string }) => Record<string, unknown>;
+  };
+  /** Events des Kerns, nur lesend. */
+  events: {
+    get: (mainEventId: string) => ModuleMainEvent | null;
+    /** Aktuelles Event des Benutzers (globaler Umschalter); null, wenn keins gewählt oder beendet. */
+    currentIdOf: (user: { id: string }) => string | null;
+    /** Öffentlich, eingeladen oder Event-Verwalter. */
+    canSee: (user: PermissionActor, mainEventId: string) => boolean;
+    participantStatus: (mainEventId: string, userId: string) => ModuleParticipantStatus | null;
+  };
   /** Nur im Manifest unter `secrets` genannte Namen, gelesen als MATCHDESK_<NAME>. */
   env: (name: string) => string | undefined;
   /** Nur eigene Tabellen (Präfix `<id>_`) beschreiben. */
@@ -100,7 +129,13 @@ export type ModuleContext = {
     entityId?: string | null;
     metadata?: Record<string, unknown>;
   }) => void;
-  push: { toUsers: (userIds: string[], payload: PushPayload) => Promise<void> };
+  push: {
+    toUsers: (userIds: string[], payload: PushPayload) => Promise<void>;
+    /** Alle Benutzer mit eingeschalteten Benachrichtigungen. */
+    toAll: (payload: PushPayload) => Promise<void>;
+    /** Teilnehmer („dabei“) eines Events. */
+    toEventParticipants: (mainEventId: string, payload: PushPayload) => Promise<void>;
+  };
   /**
    * Eigener Benachrichtigungskanal. Der Kern meldet ihn beim Ausschalten, Aktualisieren und
    * Herunterfahren selbst wieder ab.
