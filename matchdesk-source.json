@@ -21,6 +21,26 @@
           "publishedAt": "2026-11-04T07:19:56.067Z"
         }
       ]
+    },
+    {
+      "id": "sms",
+      "name": {
+        "de": "SMS",
+        "en": "Text messages"
+      },
+      "description": {
+        "de": "Rundnachrichten und Erinnerungen per SMS, verschickt über ein Android-Handy mit der App „SMS Gateway for Android“.",
+        "en": "Event updates and reminders by text message, sent through an Android phone running “SMS Gateway for Android”."
+      },
+      "versions": [
+        {
+          "version": "1.0.0",
+          "matchdeskApi": 1,
+          "url": "https://github.com/containerguy/matchdesk-modules/releases/download/sms-v1.0.0/sms-1.0.0.tgz",
+          "sha256": "8628b117f152dfcfe1f8a9f064ceb8b579aee466d6fc544262069ff915f462b3",
+          "publishedAt": "2026-11-04T08:03:08.681Z"
+        }
+      ]
     }
   ]
 }
