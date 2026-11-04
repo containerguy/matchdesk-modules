@@ -1,0 +1,8 @@
+{
+  "name": "@matchdesk-modules/polls",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Abstimmungen über Spiele, Termine, Essen und Freies, global oder pro Event.",
+  "license": "GPL-3.0-only"
+}
