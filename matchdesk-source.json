@@ -43,6 +43,26 @@
       ]
     },
     {
+      "id": "pizza",
+      "name": {
+        "de": "Pizza",
+        "en": "Pizza"
+      },
+      "description": {
+        "de": "Gemeinsam Pizza bestellen: Runden je Event, Speisekarte mit Extras, Bargeld oder PayPal, Kassenliste und Druck.",
+        "en": "Order pizza together: rounds per event, menu with extras, cash or PayPal, payment list and print-outs."
+      },
+      "versions": [
+        {
+          "version": "1.0.0",
+          "matchdeskApi": 1,
+          "url": "https://github.com/containerguy/matchdesk-modules/releases/download/pizza-v1.0.0/pizza-1.0.0.tgz",
+          "sha256": "8d9409b2070ee05c4eaee9a9745c7b54b4d023957d4e3b5dc7c284bcca304485",
+          "publishedAt": "2026-11-04T16:50:43.636Z"
+        }
+      ]
+    },
+    {
       "id": "polls",
       "name": {
         "de": "Abstimmungen",
