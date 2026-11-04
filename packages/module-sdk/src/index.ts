@@ -26,8 +26,38 @@ export type ModuleUser = {
   username: string;
   displayName: string | null;
   email: string;
+  /** Telefonnummer aus dem Profil (kann leer sein). */
+  phoneNumber: string;
   role: UserRole;
   locale: string | null;
+};
+
+/** Nachricht an einen Modulkanal, schon in der Sprache des Empfängers. */
+export type ModuleNotification = {
+  mainEventId: string;
+  eventName: string;
+  subject: string;
+  /** Klartext (Markdown erlaubt). */
+  body: string;
+  /** Pfad in der App, z. B. `#main-events`. */
+  path: string;
+  /** Absoluter Link in die App, wenn MATCHDESK_PUBLIC_URL gesetzt ist. */
+  url: string | null;
+  /** Persönlicher Abmeldelink des Empfängers, wenn MATCHDESK_PUBLIC_URL gesetzt ist. */
+  unsubscribeUrl: string | null;
+};
+
+/** Benachrichtigungskanal eines Moduls (Opt-in im Profil der Benutzer). */
+export type ModuleNotificationChannel = {
+  /** Beginnt mit der Modul-ID, z. B. `sms` im Modul `sms`. Erlaubt: [a-z][a-z0-9]{1,31}, nicht mail/push. */
+  id: string;
+  label: { de: string; en: string };
+  /** Kann der Kanal diesen Benutzer erreichen (Telefonnummer, verknüpftes Konto)? */
+  isAvailable: (user: ModuleUser) => boolean;
+  /** Steht im Profil, solange der Kanal den Benutzer nicht erreichen kann. */
+  unavailableHint?: { de: string; en: string };
+  /** Wirft bei Fehlern; der Kern protokolliert die Zustellung als fehlgeschlagen. */
+  send: (user: ModuleUser, message: ModuleNotification) => Promise<void>;
 };
 
 export type PermissionActor = { id: string; role: string } | null | undefined;
@@ -71,6 +101,11 @@ export type ModuleContext = {
     metadata?: Record<string, unknown>;
   }) => void;
   push: { toUsers: (userIds: string[], payload: PushPayload) => Promise<void> };
+  /**
+   * Eigener Benachrichtigungskanal. Der Kern meldet ihn beim Ausschalten, Aktualisieren und
+   * Herunterfahren selbst wieder ab.
+   */
+  notifications: { registerChannel: (channel: ModuleNotificationChannel) => void };
   realtime: { broadcast: (event: string, data?: unknown) => void };
   http: { fetch: typeof fetch };
   schedule: (intervalMs: number, task: () => unknown) => () => void;
