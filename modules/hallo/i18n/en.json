@@ -1,0 +1,10 @@
+{
+  "page.title": "Pinboard",
+  "page.empty": "No notes yet.",
+  "page.placeholder": "What's new?",
+  "page.post": "Pin it",
+  "page.delete": "Remove",
+  "page.by": "by {name}",
+  "admin.info": "Notes in total: {count}",
+  "admin.clear": "Delete all notes"
+}

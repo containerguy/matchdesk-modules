@@ -1,0 +1,37 @@
+{
+  "name": "matchdesk-modules",
+  "private": true,
+  "type": "module",
+  "description": "Offizielle Modul-Quelle für Matchdesk (Mitspielzentrale): Modul-SDK, Module und Index-Datei.",
+  "workspaces": [
+    "packages/*",
+    "modules/*"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p .",
+    "build": "tsx packages/module-sdk/src/cli.ts build-all",
+    "matchdesk-module": "tsx packages/module-sdk/src/cli.ts"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/supertest": "^7.2.1",
+    "better-sqlite3": "^12.11.1",
+    "esbuild": "^0.28.0",
+    "express": "^5.3.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "supertest": "^7.3.1",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.4",
+    "zod": "^4.6.7"
+  }
+}
