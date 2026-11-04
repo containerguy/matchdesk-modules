@@ -1,5 +1,26 @@
 {
   "matchdeskSource": 1,
   "name": "Matchdesk (offiziell)",
-  "modules": []
+  "modules": [
+    {
+      "id": "hallo",
+      "name": {
+        "de": "Hallo",
+        "en": "Hello"
+      },
+      "description": {
+        "de": "Beispielmodul: Begrüßung und kleine Pinnwand. Zum Ausprobieren des Modulsystems.",
+        "en": "Example module: greeting and a small pinboard. For trying out the module system."
+      },
+      "versions": [
+        {
+          "version": "1.0.0",
+          "matchdeskApi": 1,
+          "url": "https://github.com/containerguy/matchdesk-modules/releases/download/hallo-v1.0.0/hallo-1.0.0.tgz",
+          "sha256": "154046caf206cb583dc0dc7552d57af06dd17f1ba4950d998d0cbc7917049ae3",
+          "publishedAt": "2026-11-04T07:19:56.067Z"
+        }
+      ]
+    }
+  ]
 }
