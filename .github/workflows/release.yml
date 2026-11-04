@@ -2,10 +2,18 @@ name: Modul veröffentlichen
 
 # Ein Tag <modul>-v<version> (z. B. hallo-v1.0.0) baut das Modul, hängt das Paket an ein
 # GitHub-Release und trägt es mit Prüfsumme in matchdesk-source.json auf main ein.
+# Alternativ unter Actions › „Modul veröffentlichen“ › „Run workflow“ den Tag eintragen;
+# dann legt die Pipeline den Tag auf dem gewählten Branch (main) selbst an.
 on:
   push:
     tags:
       - "*-v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release-Tag <modul>-v<version>, z. B. hallo-v1.0.0"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -20,12 +28,15 @@ jobs:
     steps:
       - name: Tag zerlegen
         id: tag
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
         run: |
-          TAG="${GITHUB_REF_NAME}"
+          TAG="${INPUT_TAG:-$GITHUB_REF_NAME}"
           if [[ ! "$TAG" =~ ^([a-z][a-z0-9]{1,31})-v([0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?)$ ]]; then
             echo "Tag $TAG hat nicht das Format <modul>-v<version>" >&2
             exit 1
           fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "module=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
           echo "version=${BASH_REMATCH[2]}" >> "$GITHUB_OUTPUT"
 
@@ -48,7 +59,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           FILE="$RUNNER_TEMP/dist/${{ steps.tag.outputs.module }}-${{ steps.tag.outputs.version }}.tgz"
-          gh release create "$GITHUB_REF_NAME" "$FILE" "$FILE.sha256" \
+          gh release create "${{ steps.tag.outputs.tag }}" "$FILE" "$FILE.sha256" --target "$GITHUB_SHA" \
             --title "${{ steps.tag.outputs.module }} ${{ steps.tag.outputs.version }}" \
             --notes "Modul ${{ steps.tag.outputs.module }} ${{ steps.tag.outputs.version }} für Matchdesk (matchdeskApi 1). Installieren unter Admin › Module."
 
