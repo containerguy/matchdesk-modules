@@ -1,0 +1,52 @@
+{
+  "id": "extras",
+  "name": { "de": "Event-Extras", "en": "Event extras" },
+  "description": {
+    "de": "Installations-, Mitbring- und Verleihliste, Unkostenbeitrag, Fahrgemeinschaften und Zusatzfragen pro Event.",
+    "en": "Install, bring and lending lists, cost contribution, carpools and extra questions per event."
+  },
+  "author": "Matchdesk",
+  "homepage": "https://github.com/containerguy/matchdesk-modules/tree/main/modules/extras",
+  "license": "GPL-3.0-only",
+  "permissions": [
+    {
+      "key": "extras.view",
+      "label": { "de": "Event-Extras sehen und mitmachen", "en": "See and use event extras" },
+      "description": {
+        "de": "Mitbringen, ausleihen, mitfahren, Zusatzfragen beantworten, eigenen Beitrag melden.",
+        "en": "Bring, borrow, join rides, answer questions, report own payment."
+      },
+      "defaultRoles": ["user"]
+    },
+    {
+      "key": "extras.manage",
+      "label": { "de": "Event-Extras verwalten", "en": "Manage event extras" },
+      "description": {
+        "de": "Listen pflegen, Unkostenbeitrag festlegen und Zahlungen bestätigen, Zusatzfragen anlegen. Pro Event vergebbar.",
+        "en": "Edit lists, set the contribution and confirm payments, add questions. Can be granted per event."
+      },
+      "scopable": true,
+      "defaultRoles": ["organizer"]
+    }
+  ],
+  "menu": [
+    {
+      "path": "",
+      "label": { "de": "Event-Extras", "en": "Event extras" },
+      "icon": "M4 4h16v4H4zm0 6h16v10H4zm4 3v2h8v-2z",
+      "order": 45,
+      "permission": "extras.view"
+    }
+  ],
+  "tables": [
+    "extras_items",
+    "extras_bring_claims",
+    "extras_install_done",
+    "extras_costs",
+    "extras_payments",
+    "extras_rides",
+    "extras_ride_seats",
+    "extras_fields",
+    "extras_field_answers"
+  ]
+}
