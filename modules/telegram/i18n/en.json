@@ -1,0 +1,19 @@
+{
+  "page.title": "Telegram",
+  "page.notConfigured": "Telegram is not set up yet. An admin has to add the bot first.",
+  "page.intro": "Link your Telegram account with {bot} to get event updates there too.",
+  "page.link": "Link Telegram",
+  "page.waiting": "Telegram opens. Tap “Start” there and your account is linked.",
+  "page.openAgain": "Open link again",
+  "page.linked": "Your Telegram account is linked.",
+  "page.linkedAs": "Linked with {name}.",
+  "page.turnOn": "Turn Telegram on or off under Profile › Notifications.",
+  "page.unlink": "Unlink",
+  "page.blocked": "The bot could not reach you last time, it was probably blocked. Link again to get messages.",
+  "admin.configured": "The bot {bot} is set up.",
+  "admin.notConfigured": "Not set up yet. Create a bot with /newbot at @BotFather in Telegram, set the token as MATCHDESK_TELEGRAM_BOT_TOKEN and restart Matchdesk.",
+  "admin.linked": "Linked accounts: {linked} (blocked: {blocked})",
+  "admin.test": "Send a test message to my Telegram",
+  "admin.linkFirst": "Link your own account under Telegram in the menu to send a test message.",
+  "admin.testOk": "Test message is on its way."
+}

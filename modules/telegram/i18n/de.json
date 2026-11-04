@@ -1,0 +1,19 @@
+{
+  "page.title": "Telegram",
+  "page.notConfigured": "Telegram ist noch nicht eingerichtet. Ein Admin muss erst den Bot hinterlegen.",
+  "page.intro": "Verknüpfe dein Telegram-Konto mit {bot}, dann kannst du Event-Infos auch dort bekommen.",
+  "page.link": "Telegram verknüpfen",
+  "page.waiting": "Telegram öffnet sich. Dort auf „Starten“ tippen, dann ist dein Konto verknüpft.",
+  "page.openAgain": "Link erneut öffnen",
+  "page.linked": "Dein Telegram-Konto ist verknüpft.",
+  "page.linkedAs": "Verknüpft mit {name}.",
+  "page.turnOn": "Im Profil unter Benachrichtigungen kannst du Telegram ein- und ausschalten.",
+  "page.unlink": "Verknüpfung lösen",
+  "page.blocked": "Der Bot konnte dir zuletzt nichts schicken, vermutlich wurde er blockiert. Verknüpfe neu, um wieder Nachrichten zu bekommen.",
+  "admin.configured": "Der Bot {bot} ist eingerichtet.",
+  "admin.notConfigured": "Noch nicht eingerichtet. Bei @BotFather in Telegram mit /newbot einen Bot anlegen, den Token als MATCHDESK_TELEGRAM_BOT_TOKEN setzen und Matchdesk neu starten.",
+  "admin.linked": "Verknüpfte Konten: {linked} (davon blockiert: {blocked})",
+  "admin.test": "Testnachricht an mein Telegram",
+  "admin.linkFirst": "Für eine Testnachricht erst im Menüpunkt Telegram dein eigenes Konto verknüpfen.",
+  "admin.testOk": "Testnachricht ist unterwegs."
+}
