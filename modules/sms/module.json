@@ -1,0 +1,30 @@
+{
+  "id": "sms",
+  "name": { "de": "SMS", "en": "Text messages" },
+  "description": {
+    "de": "Rundnachrichten und Erinnerungen per SMS, verschickt über ein Android-Handy mit der App „SMS Gateway for Android“.",
+    "en": "Event updates and reminders by text message, sent through an Android phone running “SMS Gateway for Android”."
+  },
+  "author": "Matchdesk",
+  "homepage": "https://github.com/containerguy/matchdesk-modules/tree/main/modules/sms",
+  "license": "GPL-3.0-only",
+  "permissions": [
+    {
+      "key": "sms.receive",
+      "label": { "de": "Event-Infos per SMS bekommen", "en": "Receive event updates by text message" },
+      "description": {
+        "de": "SMS kosten je nach Tarif Geld. Wer das Recht nicht hat, sieht den Kanal im Profil nicht als erreichbar.",
+        "en": "Text messages may cost money depending on the plan."
+      },
+      "defaultRoles": ["user"]
+    },
+    {
+      "key": "sms.manage",
+      "label": { "de": "SMS-Versand prüfen und testen", "en": "Check and test text messages" }
+    }
+  ],
+  "adminPage": true,
+  "tables": ["sms_log"],
+  "secrets": ["SMS_PASSWORD"],
+  "network": ["api.sms-gate.app"]
+}

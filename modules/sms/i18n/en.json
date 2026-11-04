@@ -1,0 +1,18 @@
+{
+  "admin.configured": "The SMS gateway is set up.",
+  "admin.notConfigured": "Not set up yet. Enter the username from the app in the settings below, set the password as environment variable MATCHDESK_SMS_PASSWORD and restart Matchdesk.",
+  "admin.today": "Sent today: {sent} of at most {limit}",
+  "admin.cost": "Every text message goes through the phone's plan. Without a flat rate it may cost money.",
+  "admin.test": "Send a test message to my number",
+  "admin.testTo": "Goes to {number} (from your profile).",
+  "admin.noNumber": "Add a mobile number to your own profile to send a test message.",
+  "admin.testOk": "Test message is on its way.",
+  "admin.recent": "Recent deliveries",
+  "admin.empty": "No text messages sent yet.",
+  "admin.status.sent": "sent",
+  "admin.status.failed": "failed",
+  "admin.status.skipped": "skipped",
+  "admin.kind.test": "Test",
+  "admin.kind.event_info": "Event update",
+  "admin.status.pending": "in progress"
+}
