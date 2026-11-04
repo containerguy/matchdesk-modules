@@ -423,7 +423,6 @@ export default function createModule(host: ModuleClientHost) {
 
     return (
       <section className="polls-page">
-        <h2>{t("page.title")}</h2>
         {error ? <p className="error">{error}</p> : null}
         {events ? (
           <label>
@@ -441,7 +440,7 @@ export default function createModule(host: ModuleClientHost) {
         ) : null}
         {events ? <CreatePoll events={events} onCreated={load} onError={setError} /> : null}
         {!polls ? <p className="muted">…</p> : null}
-        {polls && polls.length === 0 ? <p className="muted">{t("page.empty")}</p> : null}
+        {polls && polls.length === 0 ? <p className="muted empty-state">{t("page.empty")}</p> : null}
         {open.map((poll) => (
           <PollCard key={poll.id} poll={poll} onChange={replace} onError={setError} />
         ))}

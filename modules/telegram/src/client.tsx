@@ -72,7 +72,6 @@ export default function createModule(host: ModuleClientHost) {
     if (!me) return <p className="muted">{error ?? "…"}</p>;
     return (
       <section className="telegram-page">
-        <h2>{t("page.title")}</h2>
         {error ? <p className="error">{error}</p> : null}
         {!me.configured ? <p className="muted">{t("page.notConfigured")}</p> : null}
         {me.configured && me.linked && !me.blocked ? (

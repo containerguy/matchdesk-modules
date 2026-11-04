@@ -632,7 +632,6 @@ export default function createModule(host: ModuleClientHost) {
     if (events && events.length === 0) return <p className="muted">{t("page.noEvents")}</p>;
     return (
       <section className="extras-page">
-        <h2>{t("page.title")}</h2>
         {events ? (
           <label>
             {t("page.event")}
