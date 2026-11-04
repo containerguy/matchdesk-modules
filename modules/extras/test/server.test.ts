@@ -93,7 +93,6 @@ describe("Modul Event-Extras", () => {
 
   it("verwaltet den Unkostenbeitrag mit Meldung und Bestätigung", async () => {
     const mod = await start((m) => {
-      m.db.exec(`CREATE TABLE main_event_participants (id TEXT PRIMARY KEY, main_event_id TEXT NOT NULL, user_id TEXT NOT NULL, status TEXT NOT NULL)`);
       m.db.prepare("INSERT INTO main_event_participants (id, main_event_id, user_id, status) VALUES ('p1', 'lan', ?, 'joined'), ('p2', 'lan', ?, 'interested')")
         .run(m.userId("anna"), m.userId("max"));
     });
@@ -171,8 +170,6 @@ describe("Modul Event-Extras", () => {
   it("vergibt Verwalten pro Event und hält private Events privat", async () => {
     const mod = await start((m) => {
       m.db.exec(`
-        ALTER TABLE main_events ADD COLUMN visibility TEXT NOT NULL DEFAULT 'public';
-        CREATE TABLE main_event_invites (id TEXT PRIMARY KEY, main_event_id TEXT NOT NULL, user_id TEXT NOT NULL);
         INSERT INTO main_events (id, name, visibility) VALUES ('secret', 'Geheim', 'private');
       `);
     });

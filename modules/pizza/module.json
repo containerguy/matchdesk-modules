@@ -1,0 +1,54 @@
+{
+  "id": "pizza",
+  "name": {
+    "de": "Pizza",
+    "en": "Pizza"
+  },
+  "description": {
+    "de": "Gemeinsam Pizza bestellen: Runden je Event, Speisekarte mit Extras, Bargeld oder PayPal, Kassenliste und Druck.",
+    "en": "Order pizza together: rounds per event, menu with extras, cash or PayPal, payment list and print-outs."
+  },
+  "author": "Matchdesk",
+  "homepage": "https://github.com/containerguy/matchdesk-modules/tree/main/modules/pizza",
+  "license": "GPL-3.0-only",
+  "permissions": [
+    {
+      "key": "pizza.manage",
+      "label": {
+        "de": "Pizza verwalten",
+        "en": "Manage pizza"
+      },
+      "description": {
+        "de": "Speisekarte, Bestellrunden und Zahlungen verwalten",
+        "en": "Manage menu, order rounds and payments"
+      },
+      "scopable": true,
+      "defaultRoles": [
+        "manager"
+      ]
+    }
+  ],
+  "menu": [
+    {
+      "path": "",
+      "label": {
+        "de": "Pizza",
+        "en": "Pizza"
+      },
+      "order": 30,
+      "icon": "M12 2C8 2 4.4 3.6 2 6.2L12 22l10-15.8C19.6 3.6 16 2 12 2ZM9 7a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm3 7a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm3-5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z"
+    }
+  ],
+  "adminPage": true,
+  "tables": [
+    "pizza_menu_categories",
+    "pizza_menu_items",
+    "pizza_menu_variants",
+    "pizza_sessions",
+    "pizza_orders",
+    "pizza_order_lines",
+    "pizza_menu_extras",
+    "pizza_menu_extra_categories",
+    "pizza_order_line_extras"
+  ]
+}

@@ -128,8 +128,6 @@ describe("Modul Abstimmungen", () => {
     const mod = await createTestModule({ moduleDir, register: () => undefined });
     // Kern mit privaten Events nachbauen, dann das Modul starten.
     mod.db.exec(`
-      ALTER TABLE main_events ADD COLUMN visibility TEXT NOT NULL DEFAULT 'public';
-      CREATE TABLE main_event_invites (id TEXT PRIMARY KEY, main_event_id TEXT NOT NULL, user_id TEXT NOT NULL);
       INSERT INTO main_events (id, name, visibility) VALUES ('open', 'Offen', 'public'), ('secret', 'Geheim', 'private');
     `);
     register(mod.ctx);

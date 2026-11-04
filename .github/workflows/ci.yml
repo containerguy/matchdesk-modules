@@ -25,3 +25,18 @@ jobs:
         run: npm run build -- --out "$RUNNER_TEMP/dist"  # außerhalb des Repos, wie im Release
       - name: Index-Datei prüfen
         run: npx tsx packages/module-sdk/src/cli.ts check-index matchdesk-source.json
+
+  agent:
+    name: Windows-Agent („Spielt gerade“)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: modules/presence/agent
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: modules/presence/agent/go.mod
+          cache-dependency-path: modules/presence/agent/go.sum
+      - run: go test ./...
+      - run: GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -buildvcs=false -ldflags="-s -w" -o "$RUNNER_TEMP/matchdesk-game-agent.exe" .

@@ -26,6 +26,7 @@
     "better-sqlite3": "^12.11.1",
     "esbuild": "^0.28.0",
     "express": "^5.3.0",
+    "jsdom": "^29.0.2",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "supertest": "^7.3.1",

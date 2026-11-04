@@ -1,0 +1,8 @@
+{
+  "name": "@matchdesk-modules/presence",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "„Spielt gerade“ für Matchdesk: Windows-Agent meldet laufende Spiele, Spielkonten im Profil.",
+  "license": "GPL-3.0-only"
+}
