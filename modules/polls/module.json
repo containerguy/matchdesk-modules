@@ -1,0 +1,40 @@
+{
+  "id": "polls",
+  "name": { "de": "Abstimmungen", "en": "Polls" },
+  "description": {
+    "de": "Abstimmungen über Spiele, Termine, Essen oder Freies, global oder für ein Event. Mit Vorschlägen der Teilnehmer.",
+    "en": "Polls about games, dates, food or anything else, global or for one event. Participants can suggest options."
+  },
+  "author": "Matchdesk",
+  "homepage": "https://github.com/containerguy/matchdesk-modules/tree/main/modules/polls",
+  "license": "GPL-3.0-only",
+  "permissions": [
+    { "key": "polls.view", "label": { "de": "Abstimmungen sehen", "en": "See polls" }, "defaultRoles": ["user"] },
+    {
+      "key": "polls.vote",
+      "label": { "de": "Abstimmen und Vorschläge machen", "en": "Vote and suggest options" },
+      "scopable": true,
+      "defaultRoles": ["user"]
+    },
+    {
+      "key": "polls.manage",
+      "label": { "de": "Abstimmungen verwalten", "en": "Manage polls" },
+      "description": {
+        "de": "Anlegen, ändern, schließen und löschen. Pro Event vergebbar.",
+        "en": "Create, edit, close and delete. Can be granted per event."
+      },
+      "scopable": true,
+      "defaultRoles": ["organizer"]
+    }
+  ],
+  "menu": [
+    {
+      "path": "",
+      "label": { "de": "Abstimmungen", "en": "Polls" },
+      "icon": "M4 5h16v2H4zm0 6h10v2H4zm0 6h13v2H4z",
+      "order": 40,
+      "permission": "polls.view"
+    }
+  ],
+  "tables": ["polls_polls", "polls_options", "polls_votes"]
+}
