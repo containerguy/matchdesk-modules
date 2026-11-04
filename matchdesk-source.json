@@ -83,6 +83,26 @@
       ]
     },
     {
+      "id": "presence",
+      "name": {
+        "de": "Spielt gerade",
+        "en": "Now playing"
+      },
+      "description": {
+        "de": "Zeigt, wer gerade was spielt (Windows-Agent), und sammelt Spielkonten wie Steam, EA oder Battle.net im Profil.",
+        "en": "Shows who is playing what right now (Windows agent) and collects game accounts like Steam, EA or Battle.net."
+      },
+      "versions": [
+        {
+          "version": "1.0.0",
+          "matchdeskApi": 1,
+          "url": "https://github.com/containerguy/matchdesk-modules/releases/download/presence-v1.0.0/presence-1.0.0.tgz",
+          "sha256": "466ee79a7fc5b366c8ea8ffecc4f8f66d3e85946d3f2252c5d47fe0cfae3aa35",
+          "publishedAt": "2026-11-04T16:51:25.534Z"
+        }
+      ]
+    },
+    {
       "id": "sms",
       "name": {
         "de": "SMS",
