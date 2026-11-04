@@ -67,6 +67,12 @@ export const moduleManifestSchema = z
     menu: z.array(menuEntrySchema).default([]),
     /** Hat das Modul eine eigene Admin-Unterseite (aus client.mjs)? */
     adminPage: z.boolean().default(false),
+    /** Eigener Bereich im Profil (`#login/m-<id>`), gerendert von `Profile` aus client.mjs. */
+    profile: z
+      .object({ label: localizedTextSchema, order: z.number().int().min(0).max(1000).default(50) })
+      .optional(),
+    /** Hinweis oben auf der Startseite, gerendert von `Notice` aus client.mjs. */
+    startNotice: z.boolean().default(false),
     /** Alle Tabellen des Moduls in FK-Reihenfolge (für Backup, Export und Deinstallation). */
     tables: z.array(z.string().regex(/^[a-z][a-z0-9_]*$/)).default([]),
     /** Namen von Umgebungsvariablen (ohne MATCHDESK_-Präfix), die das Modul lesen darf. */

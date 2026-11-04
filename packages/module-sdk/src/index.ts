@@ -183,9 +183,17 @@ export type ModuleAdminProps = {
   reloadSettings: () => void;
 };
 
+export type ModuleProfileProps = { user: ModuleClientUser };
+
+export type ModuleNoticeProps = { user: ModuleClientUser };
+
 export type ModuleClientDefinition = {
   Page?: ComponentType<ModulePageProps>;
   Admin?: ComponentType<ModuleAdminProps>;
+  /** Bereich im Profil (Manifest `profile`), erreichbar unter `#login/m-<id>`. */
+  Profile?: ComponentType<ModuleProfileProps>;
+  /** Hinweis oben auf der Startseite (Manifest `startNotice`); `null`, wenn nichts zu sagen ist. */
+  Notice?: ComponentType<ModuleNoticeProps>;
 };
 
 export type ModuleClientFactory = (host: ModuleClientHost) => ModuleClientDefinition;

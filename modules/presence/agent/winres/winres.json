@@ -1,0 +1,37 @@
+{
+  "RT_GROUP_ICON": {
+    "APP": {
+      "0000": ["icon.png", "icon16.png"]
+    }
+  },
+  "RT_MANIFEST": {
+    "#1": {
+      "0409": {
+        "identity": { "name": "Mitspielzentrale.GameAgent", "version": "0.1.0.0" },
+        "description": "Spielt gerade - Agent",
+        "minimum-os": "win10",
+        "execution-level": "as invoker",
+        "dpi-awareness": "system"
+      }
+    }
+  },
+  "RT_VERSION": {
+    "#1": {
+      "0000": {
+        "fixed": { "file_version": "0.1.0.0", "product_version": "0.1.0.0" },
+        "info": {
+          "0407": {
+            "CompanyName": "Mitspielzentrale",
+            "FileDescription": "Spielt gerade: meldet das laufende Spiel an die Mitspielzentrale",
+            "FileVersion": "0.1.0",
+            "InternalName": "matchdesk-game-agent",
+            "LegalCopyright": "Mitspielzentrale",
+            "OriginalFilename": "matchdesk-game-agent.exe",
+            "ProductName": "Mitspielzentrale Spielt-gerade-Agent",
+            "ProductVersion": "0.1.0"
+          }
+        }
+      }
+    }
+  }
+}

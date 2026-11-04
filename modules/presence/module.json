@@ -1,0 +1,38 @@
+{
+  "id": "presence",
+  "name": {
+    "de": "Spielt gerade",
+    "en": "Now playing"
+  },
+  "description": {
+    "de": "Zeigt, wer gerade was spielt (Windows-Agent), und sammelt Spielkonten wie Steam, EA oder Battle.net im Profil.",
+    "en": "Shows who is playing what right now (Windows agent) and collects game accounts like Steam, EA or Battle.net."
+  },
+  "author": "Matchdesk",
+  "homepage": "https://github.com/containerguy/matchdesk-modules/tree/main/modules/presence",
+  "license": "GPL-3.0-only",
+  "menu": [
+    {
+      "path": "",
+      "label": {
+        "de": "Spielt gerade",
+        "en": "Now playing"
+      },
+      "order": 25,
+      "icon": "M21.58 16.09 20.49 8.43A4 4 0 0 0 16.53 5H7.47a4 4 0 0 0-3.96 3.43l-1.09 7.66A2.55 2.55 0 0 0 4.94 19a2.54 2.54 0 0 0 1.8-.75L9 16h6l2.25 2.25a2.54 2.54 0 0 0 1.8.75 2.55 2.55 0 0 0 2.53-2.91ZM11 11H9v2H8v-2H6v-1h2V8h1v2h2Zm4-1a1 1 0 1 1 1-1 1 1 0 0 1-1 1Zm2 3a1 1 0 1 1 1-1 1 1 0 0 1-1 1Z"
+    }
+  ],
+  "profile": {
+    "label": {
+      "de": "Spielkonten",
+      "en": "Game accounts"
+    },
+    "order": 10
+  },
+  "startNotice": true,
+  "tables": [
+    "presence_agent_keys",
+    "presence_game_accounts",
+    "presence_game_account_prefs"
+  ]
+}
