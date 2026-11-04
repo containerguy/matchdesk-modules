@@ -1,0 +1,8 @@
+{
+  "name": "@matchdesk-modules/hallo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Beispielmodul: Begrüßung und Pinnwand. Zeigt Menüpunkt, Rechte, Einstellungen, Tabellen und Admin-Ansicht.",
+  "license": "GPL-3.0-only"
+}

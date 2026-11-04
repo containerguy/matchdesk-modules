@@ -1,0 +1,10 @@
+{
+  "page.title": "Pinnwand",
+  "page.empty": "Noch keine Notizen.",
+  "page.placeholder": "Was gibt's Neues?",
+  "page.post": "Anpinnen",
+  "page.delete": "Entfernen",
+  "page.by": "von {name}",
+  "admin.info": "Notizen gesamt: {count}",
+  "admin.clear": "Alle Notizen löschen"
+}

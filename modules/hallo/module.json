@@ -1,0 +1,24 @@
+{
+  "id": "hallo",
+  "name": { "de": "Hallo", "en": "Hello" },
+  "description": {
+    "de": "Beispielmodul: Begrüßung und kleine Pinnwand. Zum Ausprobieren des Modulsystems.",
+    "en": "Example module: greeting and a small pinboard. For trying out the module system."
+  },
+  "author": "Matchdesk",
+  "homepage": "https://github.com/containerguy/matchdesk-modules/tree/main/modules/hallo",
+  "license": "GPL-3.0-only",
+  "permissions": [
+    { "key": "hallo.view", "label": { "de": "Pinnwand sehen", "en": "See pinboard" }, "defaultRoles": ["user"] },
+    {
+      "key": "hallo.post",
+      "label": { "de": "Auf die Pinnwand schreiben", "en": "Post to pinboard" },
+      "scopable": true,
+      "defaultRoles": ["organizer"]
+    },
+    { "key": "hallo.manage", "label": { "de": "Pinnwand aufräumen", "en": "Clean up pinboard" }, "defaultRoles": ["manager"] }
+  ],
+  "menu": [{ "path": "", "label": { "de": "Hallo", "en": "Hello" }, "order": 60, "permission": "hallo.view" }],
+  "adminPage": true,
+  "tables": ["hallo_notes"]
+}

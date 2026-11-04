@@ -1,0 +1,16 @@
+{
+  "name": "@matchdesk/module-sdk",
+  "version": "1.0.0",
+  "description": "Typen, Build-Werkzeug und Testhilfen für Matchdesk-Module (matchdeskApi 1).",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts",
+    "./testing": "./src/testing.ts",
+    "./build": "./src/build.ts"
+  },
+  "bin": {
+    "matchdesk-module": "./src/cli.ts"
+  },
+  "license": "GPL-3.0-only"
+}

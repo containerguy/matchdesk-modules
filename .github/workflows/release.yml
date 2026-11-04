@@ -1,0 +1,67 @@
+name: Modul veröffentlichen
+
+# Ein Tag <modul>-v<version> (z. B. hallo-v1.0.0) baut das Modul, hängt das Paket an ein
+# GitHub-Release und trägt es mit Prüfsumme in matchdesk-source.json auf main ein.
+on:
+  push:
+    tags:
+      - "*-v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: modul-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Tag zerlegen
+        id: tag
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          if [[ ! "$TAG" =~ ^([a-z][a-z0-9]{1,31})-v([0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?)$ ]]; then
+            echo "Tag $TAG hat nicht das Format <modul>-v<version>" >&2
+            exit 1
+          fi
+          echo "module=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+          echo "version=${BASH_REMATCH[2]}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+      - name: Modul bauen
+        run: |
+          test -f "modules/${{ steps.tag.outputs.module }}/module.json"
+          npx tsx packages/module-sdk/src/cli.ts release "modules/${{ steps.tag.outputs.module }}" \
+            --expect-version "${{ steps.tag.outputs.version }}" --out "$RUNNER_TEMP/dist"
+
+      - name: GitHub-Release anlegen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          FILE="$RUNNER_TEMP/dist/${{ steps.tag.outputs.module }}-${{ steps.tag.outputs.version }}.tgz"
+          gh release create "$GITHUB_REF_NAME" "$FILE" "$FILE.sha256" \
+            --title "${{ steps.tag.outputs.module }} ${{ steps.tag.outputs.version }}" \
+            --notes "Modul ${{ steps.tag.outputs.module }} ${{ steps.tag.outputs.version }} für Matchdesk (matchdeskApi 1). Installieren unter Admin › Module."
+
+      - name: Index-Datei auf main aktualisieren
+        run: |
+          git fetch origin main
+          git checkout -B main origin/main
+          npx tsx packages/module-sdk/src/cli.ts index-add \
+            "$RUNNER_TEMP/dist/${{ steps.tag.outputs.module }}-${{ steps.tag.outputs.version }}.tgz" \
+            --index matchdesk-source.json \
+            --url-base "https://github.com/${GITHUB_REPOSITORY}/releases/download"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add matchdesk-source.json
+          git commit -m "Index: ${{ steps.tag.outputs.module }} ${{ steps.tag.outputs.version }}"
+          git push origin main
