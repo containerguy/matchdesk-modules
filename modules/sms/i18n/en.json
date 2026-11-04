@@ -13,5 +13,6 @@
   "admin.status.failed": "failed",
   "admin.status.skipped": "skipped",
   "admin.kind.test": "Test",
-  "admin.kind.event_info": "Event update"
+  "admin.kind.event_info": "Event update",
+  "admin.status.pending": "in progress"
 }

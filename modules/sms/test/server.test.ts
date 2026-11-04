@@ -122,6 +122,14 @@ describe("Modul SMS", () => {
     expect(await mod.notify("sms", "anna")).toBe("sent");
     expect(await mod.notify("sms", "admin")).toBe("Tageslimit für SMS erreicht");
     expect(calls).toHaveLength(1);
+    await mod.stop();
+
+    // Gleichzeitige Zustellungen (wie bei einer Rundnachricht) dürfen das Limit nicht überholen.
+    const parallel = stubGateway();
+    mod = await start({ settings: { dailyLimit: 2 } });
+    const results = await Promise.all(["anna", "admin", "anna", "admin"].map((name) => mod.notify("sms", name)));
+    expect(results.filter((result) => result === "sent")).toHaveLength(2);
+    expect(parallel).toHaveLength(2);
   });
 
   it("zeigt Admins den Stand und schickt eine Test-SMS an die eigene Nummer", async () => {

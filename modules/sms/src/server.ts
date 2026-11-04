@@ -16,20 +16,30 @@ export function register(ctx: ModuleContext) {
   function sentToday() {
     const today = new Date().toISOString().slice(0, 10);
     const row = ctx.db
-      .prepare("SELECT COUNT(*) AS count FROM sms_log WHERE status = 'sent' AND created_at >= ?")
+      .prepare("SELECT COUNT(*) AS count FROM sms_log WHERE status IN ('sent', 'pending') AND created_at >= ?")
       .get(`${today}T00:00:00.000Z`) as { count: number };
     return row.count;
   }
 
   function log(entry: { userId: string | null; mainEventId: string | null; kind: string; status: string; error?: string | null; gatewayId?: string | null }) {
+    const id = randomUUID();
     try {
       ctx.db
         .prepare(
           "INSERT INTO sms_log (id, user_id, main_event_id, kind, status, error, gateway_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
         )
-        .run(randomUUID(), entry.userId, entry.mainEventId, entry.kind, entry.status, entry.error ?? null, entry.gatewayId ?? null, new Date().toISOString());
+        .run(id, entry.userId, entry.mainEventId, entry.kind, entry.status, entry.error ?? null, entry.gatewayId ?? null, new Date().toISOString());
     } catch (error) {
       // Das Protokoll darf eine Zustellung nie verhindern.
+      ctx.log.error("SMS-Protokoll fehlgeschlagen", error);
+    }
+    return id;
+  }
+
+  function finish(id: string, status: string, fields: { error?: string | null; gatewayId?: string | null } = {}) {
+    try {
+      ctx.db.prepare("UPDATE sms_log SET status = ?, error = ?, gateway_id = ? WHERE id = ?").run(status, fields.error ?? null, fields.gatewayId ?? null, id);
+    } catch (error) {
       ctx.log.error("SMS-Protokoll fehlgeschlagen", error);
     }
   }
@@ -45,6 +55,8 @@ export function register(ctx: ModuleContext) {
       log({ ...meta, status: "skipped", error: "tageslimit" });
       throw new Error("Tageslimit für SMS erreicht");
     }
+    // Platz im Tageslimit sofort belegen: der Kern schickt an viele Empfänger gleichzeitig.
+    const logId = log({ ...meta, status: "pending" });
     const body: Record<string, unknown> = { textMessage: { text }, phoneNumbers: [phoneNumber] };
     if (current.deviceId) body.deviceId = current.deviceId;
     try {
@@ -62,10 +74,10 @@ export function register(ctx: ModuleContext) {
         throw new Error(`Gateway antwortet mit ${response.status}${detail ? `: ${detail}` : ""}`);
       }
       const result = (await response.json().catch(() => ({}))) as { id?: unknown };
-      log({ ...meta, status: "sent", gatewayId: typeof result.id === "string" ? result.id : null });
+      finish(logId, "sent", { gatewayId: typeof result.id === "string" ? result.id : null });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      log({ ...meta, status: "failed", error: message.slice(0, 200) });
+      finish(logId, "failed", { error: message.slice(0, 200) });
       throw error instanceof Error ? error : new Error(message);
     }
   }

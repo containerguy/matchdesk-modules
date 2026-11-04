@@ -13,5 +13,6 @@
   "admin.status.failed": "fehlgeschlagen",
   "admin.status.skipped": "übersprungen",
   "admin.kind.test": "Test",
-  "admin.kind.event_info": "Event-Info"
+  "admin.kind.event_info": "Event-Info",
+  "admin.status.pending": "läuft"
 }
