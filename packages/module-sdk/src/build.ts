@@ -151,7 +151,7 @@ async function bundle(entry: string, kind: "server" | "client") {
 }
 
 /** Lädt `settings` (zod) aus src/settings.ts und wandelt es in ein JSON-Schema. */
-async function settingsJsonSchema(entry: string, outDir: string) {
+async function settingsJsonSchema(entry: string) {
   const bundled = await esbuild({
     entryPoints: [entry],
     bundle: true,
@@ -162,7 +162,9 @@ async function settingsJsonSchema(entry: string, outDir: string) {
     logLevel: "silent",
     external: ["zod"]
   });
-  const tmp = path.join(outDir, `.settings-${Date.now()}.mjs`);
+  // Neben der Quelle ablegen, damit Node `zod` aus den node_modules des Moduls auflöst
+  // (outDir kann außerhalb des Repos liegen, z. B. $RUNNER_TEMP).
+  const tmp = path.join(path.dirname(entry), `.settings-${process.pid}-${Date.now()}.mjs`);
   fs.writeFileSync(tmp, bundled.outputFiles[0].contents);
   try {
     const loaded = (await import(pathToFileURL(tmp).href)) as { settings?: unknown };
@@ -207,7 +209,7 @@ export async function buildModule(moduleDir: string, options: { outDir?: string 
   };
   if (settingsEntry) {
     if (source.settings) throw new BuildError("Einstellungen entweder in module.json oder in src/settings.ts, nicht beides.");
-    draft.settings = await settingsJsonSchema(settingsEntry, outDir);
+    draft.settings = await settingsJsonSchema(settingsEntry);
   }
 
   const parsed = moduleManifestSchema.safeParse(draft);
