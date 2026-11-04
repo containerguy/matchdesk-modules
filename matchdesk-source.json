@@ -3,6 +3,26 @@
   "name": "Matchdesk (offiziell)",
   "modules": [
     {
+      "id": "extras",
+      "name": {
+        "de": "Event-Extras",
+        "en": "Event extras"
+      },
+      "description": {
+        "de": "Installations-, Mitbring- und Verleihliste, Unkostenbeitrag, Fahrgemeinschaften und Zusatzfragen pro Event.",
+        "en": "Install, bring and lending lists, cost contribution, carpools and extra questions per event."
+      },
+      "versions": [
+        {
+          "version": "1.0.0",
+          "matchdeskApi": 1,
+          "url": "https://github.com/containerguy/matchdesk-modules/releases/download/extras-v1.0.0/extras-1.0.0.tgz",
+          "sha256": "d9239543eb76b018328f9bec02ba98ae161f1dafd4b26d19af381934181ed452",
+          "publishedAt": "2026-11-04T11:25:49.135Z"
+        }
+      ]
+    },
+    {
       "id": "hallo",
       "name": {
         "de": "Hallo",
