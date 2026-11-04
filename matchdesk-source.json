@@ -23,6 +23,26 @@
       ]
     },
     {
+      "id": "polls",
+      "name": {
+        "de": "Abstimmungen",
+        "en": "Polls"
+      },
+      "description": {
+        "de": "Abstimmungen über Spiele, Termine, Essen oder Freies, global oder für ein Event. Mit Vorschlägen der Teilnehmer.",
+        "en": "Polls about games, dates, food or anything else, global or for one event. Participants can suggest options."
+      },
+      "versions": [
+        {
+          "version": "1.0.0",
+          "matchdeskApi": 1,
+          "url": "https://github.com/containerguy/matchdesk-modules/releases/download/polls-v1.0.0/polls-1.0.0.tgz",
+          "sha256": "6cdf0eb16d5b8d462954ee74898c0a2971f62bc3af4a40848e8e9e0975b0c8d4",
+          "publishedAt": "2026-11-04T09:47:42.745Z"
+        }
+      ]
+    },
+    {
       "id": "sms",
       "name": {
         "de": "SMS",
