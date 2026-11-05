@@ -61,6 +61,13 @@
       },
       "versions": [
         {
+          "version": "1.0.1",
+          "matchdeskApi": 1,
+          "url": "https://github.com/containerguy/matchdesk-modules/releases/download/pizza-v1.0.1/pizza-1.0.1.tgz",
+          "sha256": "361e04c3df72b156d4b982a299c80d98e864a429430eead0cf934bf8c264ed97",
+          "publishedAt": "2026-11-05T07:05:06.397Z"
+        },
+        {
           "version": "1.0.0",
           "matchdeskApi": 1,
           "url": "https://github.com/containerguy/matchdesk-modules/releases/download/pizza-v1.0.0/pizza-1.0.0.tgz",
