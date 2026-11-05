@@ -88,6 +88,13 @@
       },
       "versions": [
         {
+          "version": "1.0.1",
+          "matchdeskApi": 1,
+          "url": "https://github.com/containerguy/matchdesk-modules/releases/download/polls-v1.0.1/polls-1.0.1.tgz",
+          "sha256": "016cafc53900d5e911921351048520a6c9c28afc1c73dc4d892c602d48b50a31",
+          "publishedAt": "2026-11-05T07:05:39.577Z"
+        },
+        {
           "version": "1.0.0",
           "matchdeskApi": 1,
           "url": "https://github.com/containerguy/matchdesk-modules/releases/download/polls-v1.0.0/polls-1.0.0.tgz",
