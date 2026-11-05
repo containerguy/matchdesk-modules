@@ -107,6 +107,25 @@ await mod.stop();
 Die Testhilfe baut SQLite im Speicher mit den Kerntabellen `users`, `main_events`, `game_events`, spielt die
 Migrationen des Moduls ein und zeichnet Push, Realtime und Audit auf (`mod.pushes`, `mod.broadcasts`, `mod.audits`).
 
+## Oberfläche: gemeinsame Bausteine
+
+Matchdesk zeigt jede Modulseite unter dem Seitenkopf in einer eigenen Karte (`.page-card`). Der Seitenkopf
+nennt schon den Menüpunkt, also braucht die Seite keine eigene Hauptüberschrift. Damit Module wie der Rest
+der App aussehen, nutzen sie diese Klassen des Kerns. Eigene Klassen sind nur für Layout gedacht, das es
+hier noch nicht gibt.
+
+| Baustein | Markup |
+| --- | --- |
+| Hauptaktion / Nebenaktion / Gefahr | `<button>`, `<button className="secondary">`, `<button className="secondary danger">` |
+| Link als Knopf | `<a className="button-link">` oder `<a className="button-link secondary">` |
+| Knöpfe nebeneinander | `<div className="action-row">` |
+| Leerzustand | `<p className="muted empty-state">` |
+| Aufklappbarer Abschnitt | `<details><summary>Titel</summary>…</details>` (in der Karte automatisch gestaltet) |
+| Liste mit Zeilen | `<ul className="device-list">` mit `<li className="device-row">`: links `<div>` mit `<p className="item-title">` (Name, `<span className="item-meta">`, Badges) und `<p className="item-sub">`, rechts `<div className="device-actions">` |
+| Status | `<span className="badge">`, dazu `badge--ok`, `badge--warn` oder `badge--danger` |
+| Formular | `<form className="admin-form">`, kurze Formulare mit `admin-form inline-form` |
+| Hinweis / Fehler | `<p className="notice">`, `<p className="error">`, Hilfetext `<p className="muted">` |
+
 ## Veröffentlichen
 
 1. Version in `modules/<id>/package.json` erhöhen und auf `main` mergen (CI baut und testet jeden PR).

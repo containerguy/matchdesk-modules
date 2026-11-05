@@ -917,7 +917,7 @@ interface OverviewProps {
 function AllOrdersOverview({ state, isManager, run, currentUserId }: OverviewProps) {
   const { t } = useI18n();
   if (state.orders.length === 0) {
-    return <p className="muted pizza-overview__empty">{t("pizza.overview.empty")}</p>;
+    return <p className="muted empty-state pizza-overview__empty">{t("pizza.overview.empty")}</p>;
   }
   const offered = state.paymentMethods ?? ["cash"];
   const totalsByUser = new Map(state.guestTotals.map((g) => [g.userId, g.totalCents]));
