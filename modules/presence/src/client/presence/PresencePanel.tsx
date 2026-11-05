@@ -8,33 +8,19 @@ import { groupByGame, LAUNCHER_LABELS, type PresencePlayer } from "./presence-mo
 export const PRESENCE_REFRESH_MS = 20_000;
 
 /**
- * Startdatei für Windows: liegt neben der .exe und startet den Agenten. Der Schlüssel geht über
- * eine Umgebungsvariable, nicht über die Befehlszeile (die andere Prozesse mitlesen können).
+ * Link zum Verbinden: Der installierte Agent ist für matchdesk-agent:// registriert und tauscht
+ * den Einmalcode selbst gegen seinen Schlüssel. Der Schlüssel erscheint nie im Browser.
  */
-export function buildStartFile(origin: string, key: string, title: string) {
-  return [
-    "@echo off",
-    `title ${title}`,
-    'cd /d "%~dp0"',
-    `set MATCHDESK_AGENT_KEY=${key}`,
-    `matchdesk-game-agent.exe -server ${origin} -interval 30s`,
-    "pause",
-    ""
-  ].join("\r\n");
+export function buildPairLink(origin: string, code: string) {
+  return `matchdesk-agent://pair?server=${encodeURIComponent(origin)}&code=${encodeURIComponent(code)}`;
+}
+
+/** „K7MX2QPD“ → „K7MX-2QPD“, so wie ihn der Agent in seiner Rückfrage zeigt. */
+export function formatPairCode(code: string) {
+  return code.length === 8 ? `${code.slice(0, 4)}-${code.slice(4)}` : code;
 }
 
 type AgentKeyInfo = { createdAt: string; lastUsedAt: string | null } | null;
-
-function downloadText(filename: string, text: string) {
-  const url = URL.createObjectURL(new Blob([text], { type: "application/octet-stream" }));
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
 
 function formatTime(iso: string, locale: string) {
   const date = new Date(iso);
@@ -49,7 +35,7 @@ export function PresencePanel() {
   const [error, setError] = useState(false);
   const [agentAvailable, setAgentAvailable] = useState(false);
   const [agentKey, setAgentKey] = useState<AgentKeyInfo>(null);
-  const [newKey, setNewKey] = useState<string | null>(null);
+  const [pairCode, setPairCode] = useState<string | null>(null);
   const [setupState, setSetupState] = useState<"idle" | "busy" | "error">("idle");
 
   const load = useCallback(async () => {
@@ -74,15 +60,15 @@ export function PresencePanel() {
     return () => window.clearInterval(timer);
   }, [load]);
 
-  async function createKey() {
+  async function connectAgent() {
     setSetupState("busy");
     try {
-      const created = await requestJson<{ key: string; createdAt: string }>("/api/m/presence/agent-key", {
+      const created = await requestJson<{ code: string; expiresAt: string }>("/api/m/presence/agent/pair-code", {
         method: "POST"
       });
-      setNewKey(created.key);
-      setAgentKey({ createdAt: created.createdAt, lastUsedAt: null });
+      setPairCode(created.code);
       setSetupState("idle");
+      window.location.href = buildPairLink(window.location.origin, created.code);
     } catch {
       setSetupState("error");
     }
@@ -92,7 +78,7 @@ export function PresencePanel() {
     setSetupState("busy");
     try {
       await requestJson("/api/m/presence/agent-key", { method: "DELETE" });
-      setNewKey(null);
+      setPairCode(null);
       setAgentKey(null);
       setSetupState("idle");
       void load();
@@ -102,7 +88,6 @@ export function PresencePanel() {
   }
 
   const groups = players ? groupByGame(players) : [];
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
 
   return (
     <section className="presence-panel" aria-label={t("presence.aria")}>
@@ -144,27 +129,13 @@ export function PresencePanel() {
               <a className="button-link" href="/api/m/presence/agent/download" download>
                 {t("presence.setup.download")}
               </a>
-              {newKey ? (
-                <button
-                  type="button"
-                  onClick={() =>
-                    downloadText(
-                      t("presence.setup.startFileName"),
-                      buildStartFile(origin, newKey, t("main.nav.presence"))
-                    )
-                  }
-                >
-                  {t("presence.setup.startFile")}
-                </button>
-              ) : (
-                <button type="button" disabled={setupState === "busy"} onClick={() => void createKey()}>
-                  {setupState === "busy"
-                    ? t("presence.setup.creating")
-                    : agentKey
-                      ? t("presence.setup.recreate")
-                      : t("presence.setup.create")}
-                </button>
-              )}
+              <button type="button" disabled={setupState === "busy"} onClick={() => void connectAgent()}>
+                {setupState === "busy"
+                  ? t("presence.setup.connecting")
+                  : agentKey
+                    ? t("presence.setup.reconnect")
+                    : t("presence.setup.connect")}
+              </button>
               {agentKey ? (
                 <button
                   type="button"
@@ -177,7 +148,10 @@ export function PresencePanel() {
               ) : null}
             </div>
             {setupState === "error" ? <p className="error">{t("presence.setup.createError")}</p> : null}
-            {agentKey && !newKey ? (
+            {pairCode ? (
+              <p className="muted">{t("presence.setup.pairNote", { code: formatPairCode(pairCode) })}</p>
+            ) : null}
+            {agentKey && !pairCode ? (
               <p className="muted">
                 {t("presence.setup.keyStatus", {
                   created: new Date(agentKey.createdAt).toLocaleDateString(locale),
@@ -187,7 +161,6 @@ export function PresencePanel() {
                 })}
               </p>
             ) : null}
-            {newKey ? <p className="muted">{t("presence.setup.tokenNote")}</p> : null}
             <p className="muted">{t("presence.setup.smartscreen")}</p>
           </>
         ) : (

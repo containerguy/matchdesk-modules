@@ -1,45 +1,57 @@
-// matchdesk-game-agent: prototype that detects which game is running on a
-// Windows PC and (optionally) reports it to Matchdesk ("Spielt gerade").
+// Mitspielzentrale Agent ("Spielt gerade"): detects which game is running on a Windows PC
+// and reports it to Matchdesk. Runs as a tray app without a console window; connected via
+// a matchdesk-agent:// link from the website, which hands over a one-time code.
 //
 // Privacy: only matched games are reported, never the process list.
 package main
 
 import (
-	"bufio"
-	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
-	"net/http"
+	"io"
+	"log"
 	"os"
-	"os/signal"
+	"path/filepath"
 	"strings"
-	"syscall"
-	"time"
 )
 
-type Report struct {
-	Host     string        `json:"host"`
-	Time     time.Time     `json:"time"`
-	Playing  []Detection   `json:"playing"`
-	Launcher []string      `json:"launchersFound"`
-	Steam    *SteamAccount `json:"steamAccount,omitempty"`
-}
+// version is set by the release pipeline (-ldflags "-X main.version=1.1.0").
+var version = "dev"
+
+const (
+	appName        = "Mitspielzentrale Agent"
+	protocolScheme = "matchdesk-agent"
+)
 
 func main() {
-	interval := flag.Duration("interval", 0, "repeat every interval (e.g. 30s); 0 = run once")
-	server := flag.String("server", "", "Matchdesk base URL to report to (POST /api/m/presence/game)")
-	token := flag.String("token", os.Getenv("MATCHDESK_AGENT_KEY"), "agent key from the \"Spielt gerade\" page (default: env MATCHDESK_AGENT_KEY)")
-	knownFile := flag.String("known", "", "optional JSON file [{\"exe\":\"factorio.exe\",\"title\":\"Factorio\"}]")
-	noAccount := flag.Bool("no-account", false, "do not send the signed-in Steam account (SteamID64 + display name)")
-	verbose := flag.Bool("v", false, "also print installed games found per launcher (local only, never sent)")
+	once := flag.Bool("once", false, "detect once, print JSON to stdout and exit (nothing is sent)")
+	verbose := flag.Bool("v", false, "with -once: also list installed games per launcher (local only)")
+	knownFile := flag.String("known", "", "with -once: optional JSON file [{\"exe\":\"factorio.exe\",\"title\":\"Factorio\"}]")
+	background := flag.Bool("background", false, "start quietly (Windows autostart)")
 	flag.Parse()
-	// Double-clicked without arguments: show one detection and keep the window open.
-	interactive := len(os.Args) == 1
 
+	if *once {
+		runOnce(*knownFile, *verbose)
+		return
+	}
+
+	dir := appDir()
+	setupLog(dir)
+
+	var pairLink string
+	for _, arg := range flag.Args() {
+		if strings.HasPrefix(strings.ToLower(arg), protocolScheme+":") {
+			pairLink = arg
+		}
+	}
+	runApp(dir, pairLink, *background)
+}
+
+func runOnce(knownFile string, verbose bool) {
 	var known []KnownExe
-	if *knownFile != "" {
-		b, err := os.ReadFile(*knownFile)
+	if knownFile != "" {
+		b, err := os.ReadFile(knownFile)
 		if err == nil {
 			err = json.Unmarshal(b, &known)
 		}
@@ -48,110 +60,30 @@ func main() {
 			os.Exit(2)
 		}
 	}
-
-	// Ctrl+C or window closed: the loop finishes a report that is in flight,
-	// then removes the entry in Matchdesk instead of waiting for it to expire.
-	stop := make(chan os.Signal, 1)
-	if *server != "" && *interval > 0 {
-		signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
-	}
-
-	for {
-		installed, launchers := InstalledGames()
-		if *verbose {
-			for _, g := range installed {
-				fmt.Fprintf(os.Stderr, "installed [%s] %s -> %s\n", g.Launcher, g.Title, g.Dir)
-			}
-		}
-		appID, steamNames := SteamRunningAppID(), map[string]string{}
+	if verbose {
+		installed, _ := InstalledGames()
 		for _, g := range installed {
-			if g.Launcher == "steam" {
-				steamNames[g.AppID] = g.Title
-			}
-		}
-		procs, err := Processes()
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "process list:", err)
-		}
-		host, _ := os.Hostname()
-		r := Report{Host: host, Time: time.Now().UTC(), Playing: Detect(procs, installed, known, appID, steamNames), Launcher: launchers}
-		if !*noAccount {
-			r.Steam = CurrentSteamAccount()
-		}
-		if r.Playing == nil {
-			r.Playing = []Detection{}
-		}
-		out, _ := json.MarshalIndent(r, "", "  ")
-		fmt.Println(string(out))
-
-		if *server != "" {
-			if err := post(*server, *token, r); err != nil {
-				fmt.Fprintln(os.Stderr, "post:", err)
-			}
-		}
-		if *interval <= 0 {
-			if interactive {
-				fmt.Println("\nNur ein Testlauf, nichts wurde gemeldet. Zum Melden die Startdatei aus")
-				fmt.Println("der Mitspielzentrale (Seite \"Spielt gerade\" -> \"Agent einrichten\") verwenden.")
-				fmt.Print("\nEnter zum Beenden ...")
-				_, _ = bufio.NewReader(os.Stdin).ReadString('\n')
-			}
-			return
-		}
-		select {
-		case <-stop:
-			if err := clearPresence(*server, *token); err != nil {
-				fmt.Fprintln(os.Stderr, "clear:", err)
-			}
-			return
-		case <-time.After(*interval):
+			fmt.Fprintf(os.Stderr, "installed [%s] %s -> %s\n", g.Launcher, g.Title, g.Dir)
 		}
 	}
+	out, _ := json.MarshalIndent(DetectOnce(known, true), "", "  ")
+	fmt.Println(string(out))
 }
 
-// post sends only the detected games and the public Steam account (SteamID64,
-// display name) to Matchdesk: no host name, no launcher list, no exe names,
-// no login names.
-func post(server, token string, r Report) error {
-	type game struct {
-		Title    string `json:"title"`
-		Launcher string `json:"launcher"`
-		AppID    string `json:"appId,omitempty"`
+// setupLog writes to agent.log next to the config; it is cut when it grows beyond 1 MB.
+func setupLog(dir string) {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return
 	}
-	playing := make([]game, 0, len(r.Playing))
-	for _, d := range r.Playing {
-		playing = append(playing, game{Title: d.Title, Launcher: d.Launcher, AppID: d.AppID})
+	path := filepath.Join(dir, "agent.log")
+	if fi, err := os.Stat(path); err == nil && fi.Size() > 1<<20 {
+		_ = os.Remove(path)
 	}
-	payload := map[string]any{"playing": playing}
-	if r.Steam != nil {
-		payload["steamAccount"] = r.Steam
-	}
-	body, _ := json.Marshal(payload)
-	return send(server, token, http.MethodPost, body)
-}
-
-// clearPresence removes this user's entry right away (agent stops).
-func clearPresence(server, token string) error {
-	return send(server, token, http.MethodDelete, nil)
-}
-
-func send(server, token, method string, body []byte) error {
-	req, err := http.NewRequest(method, strings.TrimRight(server, "/")+"/api/m/presence/game", bytes.NewReader(body))
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
 	if err != nil {
-		return err
+		log.SetOutput(io.Discard)
+		return
 	}
-	req.Header.Set("Content-Type", "application/json")
-	if token != "" {
-		req.Header.Set("Authorization", "Bearer "+token)
-	}
-	c := http.Client{Timeout: 10 * time.Second}
-	resp, err := c.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode >= 300 {
-		return fmt.Errorf("HTTP %d", resp.StatusCode)
-	}
-	return nil
+	log.SetOutput(f)
+	log.Printf("%s %s gestartet", appName, version)
 }

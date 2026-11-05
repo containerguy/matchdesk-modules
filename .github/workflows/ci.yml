@@ -27,7 +27,7 @@ jobs:
         run: npx tsx packages/module-sdk/src/cli.ts check-index matchdesk-source.json
 
   agent:
-    name: Windows-Agent („Spielt gerade“)
+    name: Windows-Agent („Spielt gerade“) testen
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -38,5 +38,16 @@ jobs:
         with:
           go-version-file: modules/presence/agent/go.mod
           cache-dependency-path: modules/presence/agent/go.sum
-      - run: go test ./...
-      - run: GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -buildvcs=false -ldflags="-s -w" -o "$RUNNER_TEMP/matchdesk-game-agent.exe" .
+      - run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+      - run: go vet ./... && GOOS=windows GOARCH=amd64 go vet ./...
+      - run: go test -race ./...
+
+  # Exe und Installer wie im Release, unsigniert. Das Artefakt „agent-assets“ zum Ausprobieren.
+  agent-installer:
+    name: Windows-Agent („Spielt gerade“) bauen
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/agent-windows.yml
+    with:
+      module: presence

@@ -1,0 +1,133 @@
+name: Windows-Agent bauen
+
+# Baut den Windows-Agenten eines Moduls (modules/<modul>/agent) auf einem Windows-Runner:
+# Exe ohne Konsolenfenster (Tray-App) mit Symbol und Versionsangaben, danach den Installer
+# (Inno Setup, pro Benutzer, ohne Adminrechte). Mit sign: true und eingerichteter SignPath-
+# Organisation (Variable SIGNPATH_ORGANIZATION_ID, Secret SIGNPATH_API_TOKEN) werden Exe und
+# Installer über die SignPath Foundation signiert. Ergebnis: Artefakt „agent-assets“ mit
+# matchdesk-agent-setup.exe.
+on:
+  workflow_call:
+    inputs:
+      module:
+        type: string
+        required: true
+      version:
+        description: "Version x.y.z; leer = aus modules/<modul>/package.json"
+        type: string
+        default: ""
+      sign:
+        type: boolean
+        default: false
+    secrets:
+      SIGNPATH_API_TOKEN:
+        required: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  build:
+    name: Agent und Installer
+    runs-on: windows-latest
+    env:
+      AGENT_DIR: modules/${{ inputs.module }}/agent
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: modules/${{ inputs.module }}/agent/go.mod
+          cache-dependency-path: modules/${{ inputs.module }}/agent/go.sum
+
+      - name: Version bestimmen
+        id: version
+        shell: bash
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          V="${INPUT_VERSION:-$(node -p "require('./modules/${{ inputs.module }}/package.json').version")}"
+          NUM="${V%%-*}"
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "numeric=$NUM.0" >> "$GITHUB_OUTPUT"
+          SIGN=false
+          if [ "${{ inputs.sign }}" = "true" ] && [ -n "${{ vars.SIGNPATH_ORGANIZATION_ID }}" ]; then SIGN=true; fi
+          echo "sign=$SIGN" >> "$GITHUB_OUTPUT"
+          echo "Agent $V, signieren: $SIGN"
+
+      - name: Agent bauen
+        shell: bash
+        working-directory: ${{ env.AGENT_DIR }}
+        run: |
+          go test ./...
+          go install github.com/tc-hib/go-winres@v0.3.3
+          go-winres make --in winres/winres.json --arch amd64 \
+            --product-version "${{ steps.version.outputs.numeric }}" --file-version "${{ steps.version.outputs.numeric }}"
+          mkdir -p dist
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -buildvcs=false \
+            -ldflags="-s -w -H windowsgui -X main.version=${{ steps.version.outputs.version }}" \
+            -o dist/matchdesk-agent.exe .
+
+      - name: Exe zum Signieren hochladen
+        id: upload-exe
+        if: steps.version.outputs.sign == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-exe-unsigned
+          path: ${{ env.AGENT_DIR }}/dist/matchdesk-agent.exe
+          if-no-files-found: error
+      - name: Exe signieren (SignPath)
+        if: steps.version.outputs.sign == 'true'
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'matchdesk-modules' }}
+          signing-policy-slug: ${{ vars.SIGNPATH_POLICY_SLUG || 'release-signing' }}
+          artifact-configuration-slug: agent-exe
+          github-artifact-id: ${{ steps.upload-exe.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: ${{ env.AGENT_DIR }}/dist
+
+      - name: Installer bauen (Inno Setup)
+        shell: pwsh
+        working-directory: ${{ env.AGENT_DIR }}
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup -y --no-progress
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          & $iscc "/DAppVersion=${{ steps.version.outputs.version }}" "/DSourceDir=..\dist" "/DOutputDir=..\dist" installer\agent.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Installer zum Signieren hochladen
+        id: upload-setup
+        if: steps.version.outputs.sign == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-setup-unsigned
+          path: ${{ env.AGENT_DIR }}/dist/matchdesk-agent-setup.exe
+          if-no-files-found: error
+      - name: Installer signieren (SignPath)
+        if: steps.version.outputs.sign == 'true'
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'matchdesk-modules' }}
+          signing-policy-slug: ${{ vars.SIGNPATH_POLICY_SLUG || 'release-signing' }}
+          artifact-configuration-slug: agent-setup
+          github-artifact-id: ${{ steps.upload-setup.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: ${{ env.AGENT_DIR }}/dist
+
+      - name: Prüfsummen
+        shell: bash
+        working-directory: ${{ env.AGENT_DIR }}/dist
+        run: sha256sum matchdesk-agent.exe matchdesk-agent-setup.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agent-assets
+          path: ${{ env.AGENT_DIR }}/dist/matchdesk-agent-setup.exe
+          if-no-files-found: error

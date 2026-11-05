@@ -21,9 +21,11 @@ import { createPresenceStore, presenceReportSchema } from "./server/presence-sto
  * - GET    /                      wer spielt gerade was (nur angemeldet)
  * - POST   /game                  Bericht des Agenten (`{ playing: [...] }`)
  * - DELETE /game                  eigenen Eintrag sofort entfernen (Agent beendet)
- * - POST   /agent-key             Agent-Schlüssel (neu) anlegen, alter wird ungültig
- * - DELETE /agent-key             Agent-Schlüssel widerrufen
- * - GET    /agent/download        Windows-Agent (liegt im Modulpaket unter assets/)
+ * - DELETE /agent-key             Agent trennen (Schlüssel widerrufen)
+ * - POST   /agent/pair-code       Einmalcode zum Verbinden des Agenten (5 min, Link matchdesk-agent://)
+ * - POST   /agent/pair            Agent tauscht den Einmalcode gegen seinen Schlüssel (ohne Anmeldung)
+ * - GET    /agent/version         aktuelle Agent-Version (Update-Hinweis im Tray)
+ * - GET    /agent/download        Installer des Windows-Agenten (liegt im Modulpaket unter assets/)
  * - GET    /accounts              Spielkonten aller Teilnehmer
  * - GET    /accounts/me           eigene Spielkonten (+ fehlende, Steam-Vorschlag)
  * - PUT    /accounts/me           eigene Spielkonten pflegen
@@ -31,18 +33,36 @@ import { createPresenceStore, presenceReportSchema } from "./server/presence-sto
  * - POST   /accounts/me/prompt-dismiss          „Nicht mehr fragen“
  *
  * Der Agent meldet sich mit seinem Schlüssel (`Bearer md_ga_…`). Der Schlüssel taugt nur für
- * `/game`; Sitzung + CSRF oder ein API-Token mit Vollzugriff gehen dort ebenfalls.
+ * `/game`, `/agent/version` und `/agent/download`; Sitzung + CSRF oder ein API-Token mit
+ * Vollzugriff gehen dort ebenfalls. Den Schlüssel bekommt der Agent nur über den Einmalcode,
+ * er erscheint nie im Browser.
  */
 
 export const AGENT_KEY_PREFIX = "md_ga_";
 /** Wie der Kern: Ohne neue Meldung verschwinden Einträge, geprüft alle 30 s. */
 const SWEEP_INTERVAL_MS = 30_000;
 
+/** Einmalcode: 8 Zeichen ohne verwechselbare (0/O, 1/I/L), 5 Minuten gültig. */
+const PAIR_CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
+const PAIR_CODE_TTL_MS = 5 * 60_000;
+/** Falsche Codes: höchstens so viele pro Minute, danach 429 (gegen Durchprobieren). */
+const PAIR_FAILURES_PER_MINUTE = 20;
+export const AGENT_INSTALLER_NAME = "Mitspielzentrale-Agent-Setup.exe";
+
 export type PresenceOptions = { agentPath?: string; ttlMs?: number; now?: () => number };
+
+export function normalizePairCode(code: string) {
+  return code.toUpperCase().replace(/[^0-9A-Z]/g, "");
+}
+
+function newPairCode() {
+  const bytes = randomBytes(8);
+  return Array.from(bytes, (byte) => PAIR_CODE_ALPHABET[byte % PAIR_CODE_ALPHABET.length]).join("");
+}
 
 function defaultAgentPath() {
   try {
-    return fileURLToPath(new URL("./assets/matchdesk-game-agent.exe", import.meta.url));
+    return fileURLToPath(new URL("./assets/matchdesk-agent-setup.exe", import.meta.url));
   } catch {
     return "";
   }
@@ -63,8 +83,15 @@ export function register(ctx: ModuleContext, options: PresenceOptions = {}) {
   const agentPath = options.agentPath ?? defaultAgentPath();
   const agentAvailable = () => Boolean(agentPath) && fs.existsSync(agentPath);
   const router = ctx.router;
+  const now = options.now ?? Date.now;
+  /** Einmalcodes nur im Speicher: Hash des Codes -> Benutzer + Ablauf. Ein Code pro Benutzer. */
+  const pairCodes = new Map<string, { userId: string; expiresAt: number }>();
+  let pairFailures = { windowStart: 0, count: 0 };
 
-  ctx.schedule(SWEEP_INTERVAL_MS, () => store.sweep());
+  ctx.schedule(SWEEP_INTERVAL_MS, () => {
+    store.sweep();
+    for (const [hash, entry] of pairCodes) if (entry.expiresAt <= now()) pairCodes.delete(hash);
+  });
   ctx.onStop(() => store.clearAll());
 
   function issueAgentKey(userId: string) {
@@ -111,6 +138,17 @@ export function register(ctx: ModuleContext, options: PresenceOptions = {}) {
     const user = guard(request, response);
     if (!user || !ctx.requireWrite(request, response)) return undefined;
     return user.id;
+  }
+
+  /** Lesender Zugriff für den Agenten (Version, Download): Agent-Schlüssel oder Sitzung. */
+  function guardAgentRead(request: Request, response: Response) {
+    const key = bearer(request);
+    if (key?.startsWith(AGENT_KEY_PREFIX)) {
+      const userId = resolveAgentKey(key);
+      if (!userId) response.status(401).json({ error: "agent_schluessel_ungueltig" });
+      return userId;
+    }
+    return guard(request, response)?.id;
   }
 
   /** Für /game zusätzlich: Agent-Schlüssel. */
@@ -180,12 +218,6 @@ export function register(ctx: ModuleContext, options: PresenceOptions = {}) {
     response.status(204).end();
   });
 
-  router.post("/agent-key", (request, response) => {
-    const userId = guardWrite(request, response);
-    if (!userId) return;
-    response.status(201).json(issueAgentKey(userId));
-  });
-
   router.delete("/agent-key", (request, response) => {
     const userId = guardWrite(request, response);
     if (!userId) return;
@@ -242,13 +274,57 @@ export function register(ctx: ModuleContext, options: PresenceOptions = {}) {
     response.status(204).end();
   });
 
+  router.post("/agent/pair-code", (request, response) => {
+    const userId = guardWrite(request, response);
+    if (!userId) return;
+    for (const [hash, entry] of pairCodes) if (entry.userId === userId) pairCodes.delete(hash);
+    const code = newPairCode();
+    const expiresAt = now() + PAIR_CODE_TTL_MS;
+    pairCodes.set(hashKey(code), { userId, expiresAt });
+    response.status(201).json({ code, expiresAt: new Date(expiresAt).toISOString() });
+  });
+
+  /** Ohne Anmeldung: Der Einmalcode ist der Nachweis. Er gilt genau einmal. */
+  router.post("/agent/pair", (request, response) => {
+    const t = now();
+    if (t - pairFailures.windowStart >= 60_000) pairFailures = { windowStart: t, count: 0 };
+    if (pairFailures.count >= PAIR_FAILURES_PER_MINUTE) {
+      response.status(429).json({ error: "zu_viele_versuche" });
+      return;
+    }
+    const raw = typeof request.body?.code === "string" ? normalizePairCode(request.body.code) : "";
+    const hash = hashKey(raw);
+    const entry = raw.length === 8 ? pairCodes.get(hash) : undefined;
+    if (!entry || entry.expiresAt <= t) {
+      if (entry) pairCodes.delete(hash);
+      pairFailures.count += 1;
+      response.status(400).json({ error: "code_ungueltig" });
+      return;
+    }
+    pairCodes.delete(hash);
+    const user = db
+      .prepare("SELECT username, display_name AS displayName FROM users WHERE id = ? AND deleted_at IS NULL")
+      .get(entry.userId) as { username: string; displayName: string | null } | undefined;
+    if (!user) {
+      response.status(400).json({ error: "code_ungueltig" });
+      return;
+    }
+    const { key } = issueAgentKey(entry.userId);
+    response.status(201).json({ key, username: user.username, displayName: user.displayName });
+  });
+
+  router.get("/agent/version", (request, response) => {
+    if (!guardAgentRead(request, response)) return;
+    response.json({ version: ctx.version, available: agentAvailable() });
+  });
+
   router.get("/agent/download", (request, response) => {
-    if (!guard(request, response)) return;
+    if (!guardAgentRead(request, response)) return;
     if (!agentAvailable()) {
       response.status(404).json({ error: "agent_nicht_vorhanden" });
       return;
     }
-    response.download(agentPath, "matchdesk-game-agent.exe", {
+    response.download(agentPath, AGENT_INSTALLER_NAME, {
       headers: { "Content-Type": "application/vnd.microsoft.portable-executable" }
     });
   });
