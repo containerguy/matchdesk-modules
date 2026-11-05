@@ -1,1 +1,3 @@
-matchdesk-game-agent.exe
+dist/
+rsrc_windows_*.syso
+*.exe

@@ -5,7 +5,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { act } from "react-dom/test-utils";
 import { requestJson } from "../api/request";
 import { I18nProvider } from "../test-support";
-import { buildStartFile, PresencePanel } from "./PresencePanel";
+import { buildPairLink, formatPairCode, PresencePanel } from "./PresencePanel";
 
 vi.mock("../api/request", () => ({ requestJson: vi.fn() }));
 const requestJsonMock = vi.mocked(requestJson);
@@ -74,25 +74,25 @@ describe("PresencePanel", () => {
 });
 
 describe("PresencePanel setup", () => {
-  it("offers the download and creates an agent key for the start file", async () => {
+  it("offers the installer and connects the agent with a one-time code", async () => {
     requestJsonMock.mockImplementation(async (url: string) => {
       if (url === "/api/m/presence") return { players: [], agentAvailable: true, agentKey: null };
-      if (url === "/api/m/presence/agent-key") return { key: "md_ga_test", createdAt: "2026-11-03T19:00:00Z" };
+      if (url === "/api/m/presence/agent/pair-code") return { code: "K7MX2QPD", expiresAt: "2026-11-04T20:05:00Z" };
       throw new Error(url);
     });
     const view = await render();
     expect(view.querySelector('a[href="/api/m/presence/agent/download"]')).toBeTruthy();
-    const create = Array.from(view.querySelectorAll("button")).find((b) => b.textContent === "Agent einrichten");
+    expect(view.textContent).not.toContain(".cmd");
+    const connect = Array.from(view.querySelectorAll("button")).find((b) => b.textContent === "Agent verbinden");
     await act(async () => {
-      create!.click();
+      connect!.click();
       await Promise.resolve();
     });
     expect(requestJsonMock).toHaveBeenCalledWith(
-      "/api/m/presence/agent-key",
+      "/api/m/presence/agent/pair-code",
       expect.objectContaining({ method: "POST" })
     );
-    expect(view.textContent).toContain("Startdatei herunterladen");
-    expect(view.textContent).toContain("Agent abmelden");
+    expect(view.textContent).toContain("K7MX-2QPD");
   });
 
   it("shows the state of an existing agent key", async () => {
@@ -102,7 +102,8 @@ describe("PresencePanel setup", () => {
       agentKey: { createdAt: "2026-11-03T19:00:00Z", lastUsedAt: null }
     });
     const view = await render();
-    expect(view.textContent).toContain("Agent neu einrichten");
+    expect(view.textContent).toContain("Agent neu verbinden");
+    expect(view.textContent).toContain("Agent trennen");
     expect(view.textContent).toContain("zuletzt gemeldet: noch nie");
   });
 
@@ -113,9 +114,10 @@ describe("PresencePanel setup", () => {
     expect(view.textContent).toContain("keinen fertigen Agenten");
   });
 
-  it("builds a Windows start file that passes the key via the environment", () => {
-    expect(buildStartFile("https://lan.example", "md_ga_x", "Spielt gerade")).toBe(
-      '@echo off\r\ntitle Spielt gerade\r\ncd /d "%~dp0"\r\nset MATCHDESK_AGENT_KEY=md_ga_x\r\nmatchdesk-game-agent.exe -server https://lan.example -interval 30s\r\npause\r\n'
+  it("builds the pairing link for the installed agent", () => {
+    expect(buildPairLink("https://lan.example:8443", "K7MX2QPD")).toBe(
+      "matchdesk-agent://pair?server=https%3A%2F%2Flan.example%3A8443&code=K7MX2QPD"
     );
+    expect(formatPairCode("K7MX2QPD")).toBe("K7MX-2QPD");
   });
 });
