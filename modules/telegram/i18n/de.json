@@ -11,7 +11,7 @@
   "page.unlink": "Verknüpfung lösen",
   "page.blocked": "Der Bot konnte dir zuletzt nichts schicken, vermutlich wurde er blockiert. Verknüpfe neu, um wieder Nachrichten zu bekommen.",
   "admin.configured": "Der Bot {bot} ist eingerichtet.",
-  "admin.notConfigured": "Noch nicht eingerichtet. Bei @BotFather in Telegram mit /newbot einen Bot anlegen, den Token als MATCHDESK_TELEGRAM_BOT_TOKEN setzen und Matchdesk neu starten.",
+  "admin.notConfigured": "Noch nicht eingerichtet. Bei @BotFather in Telegram mit /newbot einen Bot anlegen, den Token oben unter Zugangsdaten eintragen (oder als Umgebungsvariable MATCHDESK_TELEGRAM_BOT_TOKEN setzen und neu starten).",
   "admin.linked": "Verknüpfte Konten: {linked} (davon blockiert: {blocked})",
   "admin.test": "Testnachricht an mein Telegram",
   "admin.linkFirst": "Für eine Testnachricht erst im Menüpunkt Telegram dein eigenes Konto verknüpfen.",

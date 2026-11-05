@@ -155,5 +155,5 @@ export function register(ctx: ModuleContext) {
   cleanup();
   ctx.schedule(6 * 60 * 60 * 1000, cleanup);
 
-  if (!configured()) ctx.log.warn("SMS-Modul ohne Zugangsdaten: Benutzername in den Einstellungen, Passwort als MATCHDESK_SMS_PASSWORD");
+  if (!configured()) ctx.log.warn("SMS-Modul ohne Zugangsdaten: Benutzername in den Einstellungen, Passwort unter Zugangsdaten (oder MATCHDESK_SMS_PASSWORD)");
 }

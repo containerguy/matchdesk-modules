@@ -7,7 +7,7 @@ export const settings = z.object({
     .max(300)
     .default("https://api.sms-gate.app/3rdparty/v1/messages")
     .describe("Adresse zum Senden. Cloud: https://api.sms-gate.app/3rdparty/v1/messages, Heimnetz: http://<IP-des-Handys>:8080/message"),
-  username: z.string().max(120).default("").describe("Benutzername aus der App (Passwort als Umgebungsvariable MATCHDESK_SMS_PASSWORD)"),
+  username: z.string().max(120).default("").describe("Benutzername aus der App (Passwort unten unter Zugangsdaten)"),
   deviceId: z.string().max(120).default("").describe("Geräte-ID aus der App, nur nötig bei mehreren Handys im Konto"),
   countryCode: z
     .string()
