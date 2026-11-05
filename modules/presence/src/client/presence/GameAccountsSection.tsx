@@ -78,13 +78,13 @@ export function GameAccountsSection() {
   const pending = steam?.pending;
 
   return (
-    <section className="device-panel game-accounts" aria-label={t("gameAccounts.title")}>
+    <section className="device-panel" aria-label={t("gameAccounts.title")}>
       <p className="eyebrow">{t("gameAccounts.eyebrow")}</p>
       <h3>{t("gameAccounts.title")}</h3>
       <p className="muted">{t("gameAccounts.help")}</p>
       {error ? <p className="error">{error}</p> : null}
       {pending ? (
-        <div className="notice game-accounts-pending">
+        <div className="notice">
           <p>{t("gameAccounts.steamPending", { name: pending.displayName || pending.accountId })}</p>
           <div className="action-row">
             <button
