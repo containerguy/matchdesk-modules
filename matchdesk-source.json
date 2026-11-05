@@ -169,6 +169,13 @@
       },
       "versions": [
         {
+          "version": "1.0.2",
+          "matchdeskApi": 1,
+          "url": "https://github.com/containerguy/matchdesk-modules/releases/download/telegram-v1.0.2/telegram-1.0.2.tgz",
+          "sha256": "2a00a7723cac55dd5b9d3930b088a838d9e59b8b3994514b4221b9065ee76689",
+          "publishedAt": "2026-11-05T07:08:46.247Z"
+        },
+        {
           "version": "1.0.0",
           "matchdeskApi": 1,
           "url": "https://github.com/containerguy/matchdesk-modules/releases/download/telegram-v1.0.0/telegram-1.0.0.tgz",
