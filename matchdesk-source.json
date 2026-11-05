@@ -149,6 +149,13 @@
       },
       "versions": [
         {
+          "version": "1.0.1",
+          "matchdeskApi": 1,
+          "url": "https://github.com/containerguy/matchdesk-modules/releases/download/sms-v1.0.1/sms-1.0.1.tgz",
+          "sha256": "ce232c22a5b8469fc6a02af69d83d702b7bab3c1affcec84169116def7354b5b",
+          "publishedAt": "2026-11-05T07:09:29.466Z"
+        },
+        {
           "version": "1.0.0",
           "matchdeskApi": 1,
           "url": "https://github.com/containerguy/matchdesk-modules/releases/download/sms-v1.0.0/sms-1.0.0.tgz",
