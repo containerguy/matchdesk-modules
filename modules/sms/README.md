@@ -9,9 +9,11 @@ App [SMS Gateway for Android](https://sms-gate.app), also über dessen Tarif (oh
 2. **Cloud-Modus** (empfohlen, das Handy muss nicht im selben Netz wie Matchdesk sein):
    in der App „Cloud server“ einschalten. Die App zeigt Benutzername und Passwort.
    **Heimnetz-Modus**: „Local server“ einschalten; die App zeigt IP, Port, Benutzername und Passwort.
-3. In Matchdesk das Passwort als Umgebungsvariable `MATCHDESK_SMS_PASSWORD` setzen und neu starten.
-4. Modul unter Admin › Module installieren und in den Einstellungen den Benutzernamen eintragen.
+3. Modul unter Admin › Module installieren und in den Einstellungen den Benutzernamen eintragen.
    Für den Heimnetz-Modus die Adresse auf `http://<IP-des-Handys>:8080/message` ändern.
+4. Darunter unter **Zugangsdaten** das Passwort bei `SMS_PASSWORD` eintragen (verschlüsselt gespeichert,
+   das Modul startet sofort neu). Alternativ die Umgebungsvariable `MATCHDESK_SMS_PASSWORD` setzen (hat
+   Vorrang, braucht einen Neustart; vor Matchdesk 0.21 der einzige Weg).
 5. Unter Admin › Module › SMS „Test-SMS an meine Nummer“ drücken (braucht eine Handynummer im eigenen Profil).
 
 Danach können Benutzer im Profil unter Benachrichtigungen den Kanal „SMS“ einschalten. Er ist nur

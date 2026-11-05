@@ -8,8 +8,11 @@ Webhook-Adresse.
 
 1. In Telegram mit [@BotFather](https://t.me/BotFather) `/newbot` schreiben, Namen und Benutzernamen wählen
    (z. B. `MeineLanBot`). BotFather antwortet mit einem Token.
-2. Den Token als Umgebungsvariable `MATCHDESK_TELEGRAM_BOT_TOKEN` setzen und Matchdesk neu starten.
-3. Modul unter Admin › Module installieren. Unter Admin › Module › Telegram steht dann der Bot-Name.
+2. Modul unter Admin › Module installieren und einschalten.
+3. Unter Admin › Module › Telegram › **Zugangsdaten** den Token bei `TELEGRAM_BOT_TOKEN` eintragen. Er wird
+   verschlüsselt gespeichert, das Modul startet sofort neu und zeigt darunter den Bot-Namen. Alternativ die
+   Umgebungsvariable `MATCHDESK_TELEGRAM_BOT_TOKEN` setzen (hat Vorrang, braucht einen Neustart; vor
+   Matchdesk 0.21 der einzige Weg).
 4. Selbst im Menüpunkt **Telegram** auf „Telegram verknüpfen“ klicken, in Telegram „Starten“ tippen und
    unter Admin › Module › Telegram die Testnachricht schicken.
 

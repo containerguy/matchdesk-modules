@@ -1,6 +1,6 @@
 {
   "admin.configured": "Das SMS-Gateway ist eingerichtet.",
-  "admin.notConfigured": "Noch nicht eingerichtet. Benutzername aus der App unten in den Einstellungen eintragen, das Passwort als Umgebungsvariable MATCHDESK_SMS_PASSWORD setzen und Matchdesk neu starten.",
+  "admin.notConfigured": "Noch nicht eingerichtet. Benutzername aus der App unten in den Einstellungen eintragen, das Passwort oben unter Zugangsdaten (oder als Umgebungsvariable MATCHDESK_SMS_PASSWORD mit Neustart).",
   "admin.today": "Heute verschickt: {sent} von höchstens {limit}",
   "admin.cost": "Jede SMS läuft über den Tarif des Handys. Ohne SMS-Flatrate kann das Geld kosten.",
   "admin.test": "Test-SMS an meine Nummer",

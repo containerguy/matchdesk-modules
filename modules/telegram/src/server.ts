@@ -248,6 +248,6 @@ export function register(ctx: ModuleContext) {
     ctx.schedule(seconds * 1000, bot.pollOnce);
     void bot.pollOnce();
   } else {
-    ctx.log.warn("Telegram-Modul ohne Bot-Token: MATCHDESK_TELEGRAM_BOT_TOKEN setzen und neu starten");
+    ctx.log.warn("Telegram-Modul ohne Bot-Token: unter Admin › Module › Telegram › Zugangsdaten eintragen (oder MATCHDESK_TELEGRAM_BOT_TOKEN setzen)");
   }
 }
