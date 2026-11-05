@@ -45,6 +45,9 @@ jobs:
   # Exe und Installer wie im Release, unsigniert. Das Artefakt „agent-assets“ zum Ausprobieren.
   agent-installer:
     name: Windows-Agent („Spielt gerade“) bauen
+    permissions:
+      contents: read
+      actions: read
     uses: ./.github/workflows/agent-windows.yml
     with:
       module: presence
