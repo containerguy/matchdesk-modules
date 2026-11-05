@@ -1,6 +1,6 @@
 {
   "name": "@matchdesk-modules/telegram",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "type": "module",
   "description": "Event-Infos über einen eigenen Telegram-Bot, kostenlos über die Bot-API.",

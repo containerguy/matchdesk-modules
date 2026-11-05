@@ -93,7 +93,7 @@ export function PresencePanel() {
     <section className="presence-panel" aria-label={t("presence.aria")}>
       {error ? <p className="error">{t("presence.error")}</p> : null}
       {!players && !error ? <p className="muted">{t("presence.loading")}</p> : null}
-      {players && groups.length === 0 ? <p className="muted">{t("presence.empty")}</p> : null}
+      {players && groups.length === 0 ? <p className="muted empty-state">{t("presence.empty")}</p> : null}
       {groups.length > 0 ? (
         <ul className="presence-list">
           {groups.map((group) => (
