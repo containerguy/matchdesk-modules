@@ -101,6 +101,13 @@
       },
       "versions": [
         {
+          "version": "1.1.1",
+          "matchdeskApi": 1,
+          "url": "https://github.com/containerguy/matchdesk-modules/releases/download/presence-v1.1.1/presence-1.1.1.tgz",
+          "sha256": "3e6d7b6d61e43e71163b19594501615b9156429503e9a4d61b01af6abc75d546",
+          "publishedAt": "2026-11-05T07:01:38.672Z"
+        },
+        {
           "version": "1.1.0",
           "matchdeskApi": 1,
           "url": "https://github.com/containerguy/matchdesk-modules/releases/download/presence-v1.1.0/presence-1.1.0.tgz",
