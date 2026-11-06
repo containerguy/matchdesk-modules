@@ -18,7 +18,15 @@
     },
     { "key": "hallo.manage", "label": { "de": "Pinnwand aufräumen", "en": "Clean up pinboard" }, "defaultRoles": ["manager"] }
   ],
-  "menu": [{ "path": "", "label": { "de": "Hallo", "en": "Hello" }, "order": 60, "permission": "hallo.view" }],
+  "menu": [
+    {
+      "path": "",
+      "label": { "de": "Hallo", "en": "Hello" },
+      "order": 60,
+      "icon": "M4 4h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H10l-5 4v-4H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z",
+      "permission": "hallo.view"
+    }
+  ],
   "adminPage": true,
   "tables": ["hallo_notes"]
 }

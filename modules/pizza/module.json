@@ -13,6 +13,20 @@
   "license": "GPL-3.0-only",
   "permissions": [
     {
+      "key": "pizza.view",
+      "label": {
+        "de": "Pizza sehen",
+        "en": "See pizza"
+      },
+      "description": {
+        "de": "Seite sehen und bei einer offenen Runde mitbestellen",
+        "en": "See the page and order during an open round"
+      },
+      "defaultRoles": [
+        "user"
+      ]
+    },
+    {
       "key": "pizza.manage",
       "label": {
         "de": "Pizza verwalten",
@@ -36,7 +50,8 @@
         "en": "Pizza"
       },
       "order": 30,
-      "icon": "M12 2C8 2 4.4 3.6 2 6.2L12 22l10-15.8C19.6 3.6 16 2 12 2ZM9 7a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm3 7a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm3-5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z"
+      "icon": "M12 2C8 2 4.4 3.6 2 6.2L12 22l10-15.8C19.6 3.6 16 2 12 2ZM9 7a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm3 7a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm3-5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z",
+      "permission": "pizza.view"
     }
   ],
   "adminPage": true,

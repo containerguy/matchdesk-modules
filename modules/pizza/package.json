@@ -1,9 +1,9 @@
 {
   "name": "@matchdesk-modules/pizza",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "type": "module",
-  "description": "Pizzabestellung f\u00fcr Matchdesk: Bestellrunden je Event, Speisekarte, Extras, Bezahlarten, Kassenliste und Druck.",
+  "description": "Pizzabestellung für Matchdesk: Bestellrunden je Event, Speisekarte, Extras, Bezahlarten, Kassenliste und Druck.",
   "license": "GPL-3.0-only",
   "dependencies": {
     "drizzle-orm": "0.45.2",

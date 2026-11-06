@@ -46,7 +46,7 @@ describe("matchdesk-module build", () => {
     const result = await buildModule(halloDir, { outDir: out });
     const archive = fs.readFileSync(result.file);
     expect(createHash("sha256").update(archive).digest("hex")).toBe(result.sha256);
-    expect(fs.readFileSync(`${result.file}.sha256`, "utf8")).toBe(`${result.sha256}  hallo-1.0.0.tgz\n`);
+    expect(fs.readFileSync(`${result.file}.sha256`, "utf8")).toBe(`${result.sha256}  hallo-1.0.1.tgz\n`);
 
     const entries = readTarGz(archive);
     expect(entries.map((entry) => entry.path).sort()).toEqual(
@@ -54,7 +54,7 @@ describe("matchdesk-module build", () => {
     );
     const manifest = moduleManifestSchema.parse(JSON.parse(entries.find((entry) => entry.path === "manifest.json")!.data.toString()));
     expect(manifest).toEqual(
-      expect.objectContaining({ id: "hallo", version: "1.0.0", matchdeskApi: 1, server: "server.mjs", client: "client.mjs" })
+      expect.objectContaining({ id: "hallo", version: "1.0.1", matchdeskApi: 1, server: "server.mjs", client: "client.mjs" })
     );
     // Einstellungen aus zod: der Kern liest sie mit z.fromJSONSchema und füllt Vorgaben
     const validator = z.fromJSONSchema(manifest.settings as Parameters<typeof z.fromJSONSchema>[0]);
