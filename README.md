@@ -65,7 +65,9 @@ Im Server prüft das Modul mit `ctx.can(user, "hallo.post", { mainEventId })`.
 
 ### Server-Kontext `ctx`
 
-`router` (Express, gemountet unter `/api/m/<id>`), `currentUser(req)`, `requireWrite(req, res)`, `can`,
+`router` (Express, gemountet unter `/api/m/<id>`), `currentUser(req)`, `requireWrite(req, res)`,
+`rawBody(req)` (roher JSON-Body als `Buffer` für Webhook-Signaturen; ab dem Matchdesk-Kern nach 0.21.0, vorher
+fehlt die Funktion, also vor Gebrauch prüfen), `can`,
 `settings.get()`, `env`, `db`, `audit`, `push.toUsers`, `notifications.registerChannel`, `realtime.broadcast`,
 `http.fetch`, `schedule`,
 `on` (Kern-Ereignisse) und `onStop`. Die Typen stehen in `packages/module-sdk/src/index.ts`.

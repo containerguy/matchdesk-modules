@@ -101,6 +101,13 @@ export type ModuleContext = {
   log: { info: (...args: unknown[]) => void; warn: (...args: unknown[]) => void; error: (...args: unknown[]) => void };
   currentUser: (request: Request) => ModuleUser | undefined;
   requireWrite: (request: Request, response: Response) => boolean;
+  /**
+   * Unveränderter JSON-Body der Anfrage als Buffer, z. B. um Webhook-Signaturen (HMAC) zu prüfen.
+   * Gesetzt nur für Anfragen unter /api/m/<id> mit JSON-Body, sonst undefined.
+   * Optional, weil Matchdesk-Kerne bis einschließlich 0.21.0 die Funktion nicht haben: Module prüfen
+   * `typeof ctx.rawBody === "function"` und lehnen signierte Anfragen ohne sie ab.
+   */
+  rawBody?: (request: Request) => Buffer | undefined;
   can: (user: PermissionActor, key: string, options?: { mainEventId?: string | null }) => boolean;
   /** Events, für die der Benutzer `key` nur per Event-Vergabe hat. Nur eigene Rechte (`<id>.…`). */
   scopedEventIds: (user: PermissionActor, key: string) => string[];
