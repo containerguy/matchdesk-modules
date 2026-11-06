@@ -79,5 +79,12 @@
   "fields.kind.checkbox": "Ja/Nein",
   "fields.kind.choice": "Auswahl",
   "fields.choicesPlaceholder": "Antworten, mit Komma getrennt",
-  "fields.add": "Frage hinzufügen"
+  "fields.add": "Frage hinzufügen",
+  "admin.intro": "Kurzüberblick je laufendem Event. Verwalten lässt sich alles auf der Modulseite.",
+  "admin.loading": "…",
+  "admin.noRunning": "Aktuell läuft kein Event.",
+  "admin.summary": "{bring} Mitbringen · {install} Installation(en) · {lend} Verleih · {rides} Fahrt(en) · {fields} Frage(n)",
+  "admin.costSet": "Beitrag gesetzt",
+  "admin.costNotSet": "Kein Beitrag",
+  "admin.openModule": "Zur Modulseite"
 }

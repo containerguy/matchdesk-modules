@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
-import type { ModuleClientHost, ModulePageProps } from "@matchdesk/module-sdk";
+import type { ModuleAdminProps, ModuleClientHost, ModulePageProps } from "@matchdesk/module-sdk";
 
 type Person = { id: string; username: string; displayName: string | null } | null;
 type Payment = { method: "cash" | "paypal"; status: "reported" | "confirmed"; reportedAt: string | null; confirmedAt: string | null } | null;
@@ -582,6 +582,69 @@ export default function createModule(host: ModuleClientHost) {
     );
   }
 
+  /** Admin › Module › Event-Extras: Kurzüberblick je laufendem Event mit Link zur Modulseite. */
+  function Admin(_props: ModuleAdminProps) {
+    const [events, setEvents] = useState<EventChoice[] | null>(null);
+    const [overviews, setOverviews] = useState<Record<string, Overview>>({});
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+      api<{ events: EventChoice[] }>("/events")
+        .then((result) => setEvents(result.events.filter((event) => event.status === "running")))
+        .catch((caught: Error) => setError(caught.message));
+    }, []);
+
+    useEffect(() => {
+      if (!events) return;
+      events
+        .filter((event) => !(event.id in overviews))
+        .forEach((event) => {
+          api<Overview>(`/events/${encodeURIComponent(event.id)}`)
+            .then((data) => setOverviews((previous) => ({ ...previous, [event.id]: data })))
+            .catch(() => undefined);
+        });
+    }, [events]);
+
+    return (
+      <section className="extras-admin-overview">
+        <p className="muted">{t("admin.intro")}</p>
+        {error ? <p className="error">{error}</p> : null}
+        {events === null && !error ? <p className="muted">{t("admin.loading")}</p> : null}
+        {events && events.length === 0 ? <p className="muted">{t("admin.noRunning")}</p> : null}
+        {events && events.length > 0 ? (
+          <ul className="device-list">
+            {events.map((event) => {
+              const overview = overviews[event.id];
+              return (
+                <li key={event.id} className="device-row">
+                  <div>
+                    <p>
+                      <strong>{event.name}</strong>
+                    </p>
+                    <small className="muted">
+                      {overview
+                        ? `${t("admin.summary", {
+                            bring: overview.bring.length,
+                            install: overview.install.length,
+                            lend: overview.lend.length,
+                            rides: overview.rides.length,
+                            fields: overview.fields.length
+                          })} · ${overview.cost ? t("admin.costSet") : t("admin.costNotSet")}`
+                        : t("admin.loading")}
+                    </small>
+                  </div>
+                  <a className="button" href={`#mitmachen/${host.id}`}>
+                    {t("admin.openModule")}
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
+      </section>
+    );
+  }
+
   function Page(_props: ModulePageProps) {
     const [events, setEvents] = useState<EventChoice[] | null>(null);
     const [eventId, setEventId] = useState("");
@@ -665,5 +728,5 @@ export default function createModule(host: ModuleClientHost) {
     );
   }
 
-  return { Page };
+  return { Page, Admin };
 }
