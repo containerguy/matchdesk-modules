@@ -1,4 +1,5 @@
 import path from "node:path";
+import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { createTestModule } from "../src/testing";
 
@@ -43,5 +44,29 @@ describe("createTestModule: Benachrichtigungskanäle", () => {
           ctx.notifications.registerChannel({ id: "sms", label: { de: "SMS", en: "SMS" }, isAvailable: () => true, send: async () => undefined })
       })
     ).rejects.toThrow(/muss mit der Modul-ID hallo beginnen/);
+  });
+});
+
+describe("createTestModule: roher Body", () => {
+  it("liefert den unveränderten JSON-Body über ctx.rawBody", async () => {
+    const module = await createTestModule({
+      moduleDir: halloDir,
+      register: (ctx) => {
+        ctx.router.post("/roh", (req, res) => {
+          const raw = ctx.rawBody?.(req);
+          res.json({ body: req.body, raw: raw ? raw.toString("utf8") : null });
+        });
+      }
+    });
+    const raw = '{ "z":1,"a" : "\\u00e4" }';
+    const response = await request(module.app).post("/api/m/hallo/roh").set("Content-Type", "application/json").send(raw).expect(200);
+    expect(response.body).toEqual({ body: { z: 1, a: "ä" }, raw });
+    await module.stop();
+  });
+
+  it("simuliert ältere Kerne ohne ctx.rawBody", async () => {
+    const module = await createTestModule({ moduleDir: halloDir, withoutRawBody: true });
+    expect(module.ctx.rawBody).toBeUndefined();
+    await module.stop();
   });
 });
