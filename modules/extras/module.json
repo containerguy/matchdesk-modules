@@ -38,6 +38,7 @@
       "permission": "extras.view"
     }
   ],
+  "adminPage": true,
   "tables": [
     "extras_items",
     "extras_bring_claims",

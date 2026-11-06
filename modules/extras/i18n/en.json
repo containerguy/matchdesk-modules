@@ -79,5 +79,12 @@
   "fields.kind.checkbox": "Yes/No",
   "fields.kind.choice": "Choice",
   "fields.choicesPlaceholder": "Answers, separated by commas",
-  "fields.add": "Add question"
+  "fields.add": "Add question",
+  "admin.intro": "Quick overview per running event. Manage everything on the module page.",
+  "admin.loading": "…",
+  "admin.noRunning": "No event is running right now.",
+  "admin.summary": "{bring} bring · {install} install item(s) · {lend} lending · {rides} ride(s) · {fields} question(s)",
+  "admin.costSet": "Contribution set",
+  "admin.costNotSet": "No contribution",
+  "admin.openModule": "Open module page"
 }
