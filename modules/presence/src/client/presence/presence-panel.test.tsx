@@ -58,12 +58,34 @@ describe("PresencePanel", () => {
     });
     const view = await render();
     expect(requestJsonMock).toHaveBeenCalledWith("/api/m/presence");
-    const games = view.querySelectorAll(".presence-game");
+    const games = view.querySelector("ul.device-list")!.querySelectorAll("li.device-row");
     expect(games).toHaveLength(1);
-    expect(games[0].textContent).toContain("Counter-Strike 2");
-    expect(games[0].textContent).toContain("2 im Spiel");
+    expect(games[0].querySelector(".item-title strong")?.textContent).toBe("Counter-Strike 2");
+    expect(games[0].querySelector(".item-meta")?.textContent).toBe("Steam");
+    expect(games[0].querySelector(".badge")?.textContent).toBe("2 im Spiel");
     expect(games[0].textContent).toContain("Anna");
     expect(games[0].textContent).toContain("rene");
+  });
+
+  it("uses the shared building blocks instead of module classes", async () => {
+    requestJsonMock.mockResolvedValue({
+      players: [
+        {
+          userId: "1",
+          username: "rene",
+          displayName: null,
+          games: [{ title: "Counter-Strike 2", launcher: "steam", since: "2026-11-03T18:00:00Z" }],
+          updatedAt: "2026-11-03T18:00:30Z"
+        }
+      ],
+      agentAvailable: true,
+      agentKey: null
+    });
+    const view = await render();
+    const own = Array.from(view.querySelectorAll<HTMLElement>("[class]"))
+      .flatMap((element) => Array.from(element.classList))
+      .filter((name) => name.startsWith("presence-") || name.startsWith("game-account"));
+    expect(own).toEqual([]);
   });
 
   it("shows the empty state", async () => {

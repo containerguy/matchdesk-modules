@@ -90,36 +90,34 @@ export function PresencePanel() {
   const groups = players ? groupByGame(players) : [];
 
   return (
-    <section className="presence-panel" aria-label={t("presence.aria")}>
+    <section aria-label={t("presence.aria")}>
       {error ? <p className="error">{t("presence.error")}</p> : null}
       {!players && !error ? <p className="muted">{t("presence.loading")}</p> : null}
       {players && groups.length === 0 ? <p className="muted empty-state">{t("presence.empty")}</p> : null}
       {groups.length > 0 ? (
-        <ul className="presence-list">
+        <ul className="device-list">
           {groups.map((group) => (
-            <li key={group.title} className="presence-game">
-              <div className="presence-game-header">
-                <strong>{group.title}</strong>
-                <span className="muted">
-                  {[LAUNCHER_LABELS[group.launcher], t("presence.count", { count: group.players.length })]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </span>
-              </div>
-              <ul className="presence-players">
+            <li key={group.title} className="device-row">
+              <div>
+                <p className="item-title">
+                  <strong>{group.title}</strong>
+                  {LAUNCHER_LABELS[group.launcher] ? (
+                    <span className="item-meta">{LAUNCHER_LABELS[group.launcher]}</span>
+                  ) : null}
+                  <span className="badge badge--ok">{t("presence.count", { count: group.players.length })}</span>
+                </p>
                 {group.players.map((entry) => (
-                  <li key={entry.userId}>
-                    {entry.name}{" "}
-                    <span className="muted">{t("presence.since", { time: formatTime(entry.since, locale) })}</span>
-                  </li>
+                  <p key={entry.userId} className="item-sub">
+                    {entry.name} · {t("presence.since", { time: formatTime(entry.since, locale) })}
+                  </p>
                 ))}
-              </ul>
+              </div>
             </li>
           ))}
         </ul>
       ) : null}
       <GameAccountsOverview />
-      <details className="presence-setup">
+      <details>
         <summary>{t("presence.setup.title")}</summary>
         <p className="muted">{t("presence.setup.privacy")}</p>
         {agentAvailable ? (
