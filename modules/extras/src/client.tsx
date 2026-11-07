@@ -633,9 +633,11 @@ export default function createModule(host: ModuleClientHost) {
                         : t("admin.loading")}
                     </small>
                   </div>
-                  <a className="button" href={`#mitmachen/${host.id}`}>
-                    {t("admin.openModule")}
-                  </a>
+                  <div className="device-actions">
+                    <a className="button-link secondary" href={`#mitmachen/${host.id}`}>
+                      {t("admin.openModule")}
+                    </a>
+                  </div>
                 </li>
               );
             })}
