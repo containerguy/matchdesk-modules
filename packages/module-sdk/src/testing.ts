@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import Database from "better-sqlite3";
-import express, { type Express } from "express";
+import express, { type Express, type Request } from "express";
 import { pathToFileURL } from "node:url";
 import { z } from "zod";
 import type {
@@ -78,6 +78,8 @@ export type TestModuleOptions = {
   settings?: Record<string, unknown>;
   secrets?: Record<string, string>;
   users?: Array<{ id?: string; username: string; role?: UserRole; displayName?: string; phoneNumber?: string }>;
+  /** Simuliert einen Kern ohne `ctx.rawBody` (Matchdesk bis einschließlich 0.21.0). */
+  withoutRawBody?: boolean;
 };
 
 export type TestModule = {
@@ -188,6 +190,7 @@ export async function createTestModule(options: TestModuleOptions): Promise<Test
   const timers = new Set<NodeJS.Timeout>();
   const cleanups: Array<() => unknown> = [];
   const router = express.Router();
+  const rawBodies = new WeakMap<object, Buffer>();
 
   function findUser(username: string) {
     return db.prepare("SELECT * FROM users WHERE username = ?").get(username) as
@@ -226,6 +229,7 @@ export async function createTestModule(options: TestModuleOptions): Promise<Test
       const row = name ? findUser(name) : undefined;
       return row ? toModuleUser(row) : undefined;
     },
+    ...(options.withoutRawBody ? {} : { rawBody: (request: Request) => rawBodies.get(request) }),
     requireWrite: (request, response) => {
       if (!request.get("x-test-user")) {
         response.status(401).json({ error: "nicht_angemeldet" });
@@ -349,7 +353,15 @@ export async function createTestModule(options: TestModuleOptions): Promise<Test
   };
 
   const app = express();
-  app.use(express.json());
+  // Wie im Kern: 1 MB, roher Body bleibt für Modul-Routen erhalten.
+  app.use(
+    express.json({
+      limit: "1mb",
+      verify: (request, _response, buffer) => {
+        rawBodies.set(request, Buffer.from(buffer));
+      }
+    })
+  );
   app.use(`/api/m/${id}`, router);
 
   if (options.register) {
