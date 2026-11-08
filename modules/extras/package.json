@@ -1,6 +1,6 @@
 {
   "name": "@matchdesk-modules/extras",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "description": "Event-Extras: Installations-, Mitbring- und Verleihliste, Unkostenbeitrag, Fahrgemeinschaften und Zusatzfragen pro Event.",

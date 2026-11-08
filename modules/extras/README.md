@@ -25,3 +25,9 @@ Nach dem Eventende ist alles nur noch lesbar, außer Zurückgeben und dem Beitra
   Organisator, auch pro Event vergebbar)
 
 Private Events sehen wie im Kern nur Eingeladene und wer Events verwalten darf.
+
+## Admin › Module › Event-Extras
+
+Zeigt einen Kurzüberblick je laufendem Event (Anzahl Mitbringen/Installieren/Verleih/Fahrten/Fragen, ob ein
+Beitrag gesetzt ist) mit einem Link direkt zur Modulseite. Die eigentliche Verwaltung (Listen pflegen,
+Beitrag festlegen, Zahlungen bestätigen, Fragen anlegen) passiert dort, nicht auf der Admin-Seite.
