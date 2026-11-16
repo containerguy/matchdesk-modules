@@ -413,62 +413,62 @@ export default function createModule(host: ModuleClientHost) {
 
     return (
       <Section title={t("tab.cost")}>
-        {/* Teilnehmer-Sicht: Betrag, Zustand, Frist, Zweck und die eigenen Knöpfe. */}
-        {!data.canManage ? (
-          <>
-            {/* Kopfbereich: Betrag, Zustand, Frist, Zweck */}
-            <div className="inline-form">
-              <p className="item-title">
-                <strong>{t("cost.amountPerPerson", { amount: money(cost.amountCents, cost.currency) })}</strong> <MyBadge state={mineState} />
+        {/* Teilnehmer-Sicht: Betrag, Zustand, Frist, Zweck und die eigenen Knöpfe.
+            Immer sichtbar – auch für die Orga, die selbst Teilnehmer ist und ihren
+            eigenen Beitrag zahlen muss; die Orga-Kennzahlen kommen zusätzlich darunter. */}
+        <>
+          {/* Kopfbereich: Betrag, Zustand, Frist, Zweck */}
+          <div className="inline-form">
+            <p className="item-title">
+              <strong>{t("cost.amountPerPerson", { amount: money(cost.amountCents, cost.currency) })}</strong> <MyBadge state={mineState} />
+            </p>
+            {due ? (
+              <p className="item-sub">
+                {due.clear} · {due.rel}
               </p>
-              {due ? (
-                <p className="item-sub">
-                  {due.clear} · {due.rel}
-                </p>
-              ) : null}
-              {cost.note ? <p className="item-sub">{cost.note}</p> : null}
-            </div>
+            ) : null}
+            {cost.note ? <p className="item-sub">{cost.note}</p> : null}
+          </div>
 
-            {/* Dein Beitrag: Zustand und Knöpfe */}
-            <div className="device-row">
-              <div>
-                <p className="item-title">
-                  <strong>{t("cost.myTitle")}</strong> <MyBadge state={mineState} />
-                </p>
-                <span>
-                  {mineState === "open"
-                    ? t("cost.myOpen")
-                    : mineState === "reported"
-                      ? t("cost.myReported", { method: t(`cost.${cost.mine!.method}`), when: cost.mine!.reportedAt ? shortDateTime(cost.mine!.reportedAt) : "" })
-                      : t("cost.myConfirmed")}
-                </span>
+          {/* Dein Beitrag: Zustand und Knöpfe */}
+          <div className="device-row">
+            <div>
+              <p className="item-title">
+                <strong>{t("cost.myTitle")}</strong> <MyBadge state={mineState} />
+              </p>
+              <span>
+                {mineState === "open"
+                  ? t("cost.myOpen")
+                  : mineState === "reported"
+                    ? t("cost.myReported", { method: t(`cost.${cost.mine!.method}`), when: cost.mine!.reportedAt ? shortDateTime(cost.mine!.reportedAt) : "" })
+                    : t("cost.myConfirmed")}
+              </span>
+            </div>
+            {mineState !== "confirmed" ? (
+              <div className="device-actions">
+                {cost.paypalUrl ? (
+                  <a className="button-link secondary" href={cost.paypalUrl} target="_blank" rel="noreferrer noopener">
+                    {t("cost.payPaypal")}
+                  </a>
+                ) : null}
+                <button type="button" className="secondary" onClick={() => run("/events/__EVENT__/payment", { method: "PUT", body: JSON.stringify({ method: "paypal" }) })}>
+                  {t("cost.reportPaypal")}
+                </button>
+                <button type="button" className="secondary" onClick={() => run("/events/__EVENT__/payment", { method: "PUT", body: JSON.stringify({ method: "cash" }) })}>
+                  {t("cost.reportCash")}
+                </button>
+                {cost.mine ? (
+                  <button type="button" className="secondary danger" onClick={() => run("/events/__EVENT__/payment", { method: "PUT", body: JSON.stringify({ method: null }) })}>
+                    {t("cost.withdraw")}
+                  </button>
+                ) : null}
               </div>
-              {mineState !== "confirmed" ? (
-                <div className="device-actions">
-                  {cost.paypalUrl ? (
-                    <a className="button-link secondary" href={cost.paypalUrl} target="_blank" rel="noreferrer noopener">
-                      {t("cost.payPaypal")}
-                    </a>
-                  ) : null}
-                  <button type="button" className="secondary" onClick={() => run("/events/__EVENT__/payment", { method: "PUT", body: JSON.stringify({ method: "paypal" }) })}>
-                    {t("cost.reportPaypal")}
-                  </button>
-                  <button type="button" className="secondary" onClick={() => run("/events/__EVENT__/payment", { method: "PUT", body: JSON.stringify({ method: "cash" }) })}>
-                    {t("cost.reportCash")}
-                  </button>
-                  {cost.mine ? (
-                    <button type="button" className="secondary danger" onClick={() => run("/events/__EVENT__/payment", { method: "PUT", body: JSON.stringify({ method: null }) })}>
-                      {t("cost.withdraw")}
-                    </button>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-            {mineState !== "confirmed" ? <p className="item-sub">{t("cost.nextStep")}</p> : null}
-          </>
-        ) : null}
+            ) : null}
+          </div>
+          {mineState !== "confirmed" ? <p className="item-sub">{t("cost.nextStep")}</p> : null}
+        </>
 
-        {/* Orga-Sicht: Kennzahlen, Filter, Liste, Formular */}
+        {/* Orga-Sicht: Kennzahlen, Filter, Liste, Formular (zusätzlich zur Teilnehmer-Sicht) */}
         {data.canManage && cost.payments ? (
           <>
             <dl className="status-grid">

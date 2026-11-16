@@ -221,6 +221,24 @@ describe("Event-Extras Beitrag-Reiter (AP3)", () => {
     expect(element.querySelector(".device-list")?.textContent).not.toContain("Lea");
   });
 
+  it("Orga ist selbst Teilnehmer: sieht eigenen Beitrag (PayPal-Knopf, Badge) UND die Kennzahlen", async () => {
+    const host = buildHost({
+      "/events": () => ({ events: [{ id: "lan", name: "LAN Herbst", status: "running", canManage: true }] }),
+      "/events/lan": () => overview({ canManage: true, mine: { method: "paypal", status: "reported", reportedAt: "2026-11-06T17:42:00.000Z", confirmedAt: null }, withPayments: true })
+    });
+    const element = await renderCostTab(host);
+
+    // Teilnehmer-Sicht bleibt sichtbar: eigener PayPal-Knopf als .button-link mit dem hinterlegten Link
+    const pay = [...element.querySelectorAll("a.button-link")].find((anchor) => anchor.textContent?.trim() === "Mit PayPal zahlen");
+    expect(pay).toBeTruthy();
+    expect(pay?.getAttribute("href")).toBe("https://paypal.me/sven");
+    // eigener Zustand als Badge (gemeldet) im Kopfbereich
+    expect([...element.querySelectorAll(".badge--warn")].some((badge) => badge.textContent?.trim() === "gemeldet")).toBe(true);
+    // Orga-Kennzahlen kommen zusätzlich darunter
+    expect(element.querySelector(".status-grid")).toBeTruthy();
+    expect(element.querySelector(".tab-strip--filter")?.textContent).toContain("Offen (7)");
+  });
+
   it("Orga: Filter wird aus dem Pfad gelesen (.../beitrag/alle -> Vorauswahl Alle)", async () => {
     const host = buildHost({
       "/events": () => ({ events: [{ id: "lan", name: "LAN Herbst", status: "running", canManage: true }] }),
