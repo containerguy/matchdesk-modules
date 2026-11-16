@@ -411,150 +411,167 @@ export default function createModule(host: ModuleClientHost) {
         return order !== 0 ? order : name(a.user).localeCompare(name(b.user), host.locale);
       });
 
+    // Teilnehmer-Sicht: Betrag, Zustand, Frist, Zweck und die eigenen Knöpfe.
+    // Immer sichtbar – auch für die Orga, die selbst Teilnehmer ist und ihren
+    // eigenen Beitrag zahlen muss (Konzept HCI-153 Abschnitt 2.6, additiv).
+    const participantView = (
+      <>
+        {/* Kopfbereich: Betrag, Zustand, Frist, Zweck */}
+        <div className="inline-form">
+          <p className="item-title">
+            <strong>{t("cost.amountPerPerson", { amount: money(cost.amountCents, cost.currency) })}</strong> <MyBadge state={mineState} />
+          </p>
+          {due ? (
+            <p className="item-sub">
+              {due.clear} · {due.rel}
+            </p>
+          ) : null}
+          {cost.note ? <p className="item-sub">{cost.note}</p> : null}
+        </div>
+
+        {/* Dein Beitrag: Zustand und Knöpfe */}
+        <div className="device-row">
+          <div>
+            <p className="item-title">
+              <strong>{t("cost.myTitle")}</strong> <MyBadge state={mineState} />
+            </p>
+            <span>
+              {mineState === "open"
+                ? t("cost.myOpen")
+                : mineState === "reported"
+                  ? t("cost.myReported", { method: t(`cost.${cost.mine!.method}`), when: cost.mine!.reportedAt ? shortDateTime(cost.mine!.reportedAt) : "" })
+                  : t("cost.myConfirmed")}
+            </span>
+          </div>
+          {mineState !== "confirmed" ? (
+            <div className="device-actions">
+              {cost.paypalUrl ? (
+                <a className="button-link secondary" href={cost.paypalUrl} target="_blank" rel="noreferrer noopener">
+                  {t("cost.payPaypal")}
+                </a>
+              ) : null}
+              <button type="button" className="secondary" onClick={() => run("/events/__EVENT__/payment", { method: "PUT", body: JSON.stringify({ method: "paypal" }) })}>
+                {t("cost.reportPaypal")}
+              </button>
+              <button type="button" className="secondary" onClick={() => run("/events/__EVENT__/payment", { method: "PUT", body: JSON.stringify({ method: "cash" }) })}>
+                {t("cost.reportCash")}
+              </button>
+              {cost.mine ? (
+                <button type="button" className="secondary danger" onClick={() => run("/events/__EVENT__/payment", { method: "PUT", body: JSON.stringify({ method: null }) })}>
+                  {t("cost.withdraw")}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+        {mineState !== "confirmed" ? <p className="item-sub">{t("cost.nextStep")}</p> : null}
+      </>
+    );
+
+    // Orga-Sicht: Kennzahlen, Filter, Liste, Formular.
+    const orgaView =
+      data.canManage && cost.payments ? (
+        <>
+          <dl className="status-grid">
+            <div>
+              <dt>{t("cost.statConfirmed")}</dt>
+              <dd>{t("cost.statConfirmedValue", { confirmed: confirmedCount, total })}</dd>
+            </div>
+            <div>
+              <dt>{t("cost.statReported")}</dt>
+              <dd>{reportedCount}</dd>
+            </div>
+            <div>
+              <dt>{t("cost.statNothing")}</dt>
+              <dd>{nothingCount}</dd>
+            </div>
+            <div>
+              <dt>{t("cost.statCollected")}</dt>
+              <dd>{t("cost.statCollectedValue", { collected: money(confirmedCount * cost.amountCents, cost.currency), expected: money(total * cost.amountCents, cost.currency) })}</dd>
+            </div>
+          </dl>
+
+          <div className="tab-strip tab-strip--filter" role="tablist" aria-label={t("cost.filterLabel")}>
+            {COST_FILTERS.map((entry) => (
+              <button
+                key={entry}
+                type="button"
+                role="tab"
+                aria-selected={filter === entry}
+                className={filter === entry ? "tab-strip__tab active" : "tab-strip__tab"}
+                onClick={() => setFilter(entry)}
+              >
+                {t(`cost.filter.${entry}`, { count: counts[entry] })}
+              </button>
+            ))}
+          </div>
+
+          {rows.length === 0 ? <p className="muted">{t("cost.listEmpty")}</p> : null}
+          <ul className="device-list">
+            {rows.map((entry) => {
+              const state = paymentState(entry.payment);
+              return (
+                <li key={entry.user?.id} className="device-row">
+                  <div>
+                    <p className="item-title">
+                      <strong>{name(entry.user)}</strong> <RowBadge payment={entry.payment} />
+                    </p>
+                    <span>
+                      {state === "open"
+                        ? t("cost.rowNothing")
+                        : state === "reported"
+                          ? t("cost.rowReportedAt", { when: entry.payment!.reportedAt ? shortDateTime(entry.payment!.reportedAt) : "" })
+                          : t("cost.rowConfirmedAt", { when: entry.payment!.confirmedAt ? shortDateTime(entry.payment!.confirmedAt) : "" })}
+                    </span>
+                  </div>
+                  <div className="device-actions">
+                    {state === "reported" ? (
+                      <button
+                        type="button"
+                        className="secondary"
+                        onClick={() => run(`/events/__EVENT__/payments/${entry.user?.id}`, { method: "PUT", body: JSON.stringify({ status: "confirmed", method: entry.payment?.method ?? "cash" }) })}
+                      >
+                        {t("cost.confirm")}
+                      </button>
+                    ) : null}
+                    {state === "open" ? (
+                      <button type="button" className="secondary" onClick={() => run(`/events/__EVENT__/payments/${entry.user?.id}`, { method: "PUT", body: JSON.stringify({ status: "confirmed", method: "cash" }) })}>
+                        {t("cost.confirmCash")}
+                      </button>
+                    ) : null}
+                    {state === "confirmed" ? (
+                      <button type="button" className="secondary" onClick={() => run(`/events/__EVENT__/payments/${entry.user?.id}`, { method: "PUT", body: JSON.stringify({ status: "open" }) })}>
+                        {t("cost.reset")}
+                      </button>
+                    ) : null}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+
+          <details className="more-info">
+            <summary>{t("cost.edit")}</summary>
+            <CostEditForm cost={cost} draft={draft} setDraft={setDraft} save={save} run={run} />
+          </details>
+        </>
+      ) : null;
+
+    // Reihenfolge: Für die Orga stehen die Kennzahlen und der Filter „Offen" zuerst
+    // (Konzept HCI-153 Abschnitt 2.4 „zuerst … Kennzahlen"), damit „wer hat noch nicht
+    // bezahlt" bei 25 Personen auch auf 390 px ohne Scrollen oberhalb der unteren
+    // Navigation sichtbar ist. Der eigene Beitrag folgt darunter. Teilnehmer ohne
+    // Verwaltungsrecht sehen nur ihre eigene Sicht.
     return (
       <Section title={t("tab.cost")}>
-        {/* Teilnehmer-Sicht: Betrag, Zustand, Frist, Zweck und die eigenen Knöpfe.
-            Immer sichtbar – auch für die Orga, die selbst Teilnehmer ist und ihren
-            eigenen Beitrag zahlen muss; die Orga-Kennzahlen kommen zusätzlich darunter. */}
-        <>
-          {/* Kopfbereich: Betrag, Zustand, Frist, Zweck */}
-          <div className="inline-form">
-            <p className="item-title">
-              <strong>{t("cost.amountPerPerson", { amount: money(cost.amountCents, cost.currency) })}</strong> <MyBadge state={mineState} />
-            </p>
-            {due ? (
-              <p className="item-sub">
-                {due.clear} · {due.rel}
-              </p>
-            ) : null}
-            {cost.note ? <p className="item-sub">{cost.note}</p> : null}
-          </div>
-
-          {/* Dein Beitrag: Zustand und Knöpfe */}
-          <div className="device-row">
-            <div>
-              <p className="item-title">
-                <strong>{t("cost.myTitle")}</strong> <MyBadge state={mineState} />
-              </p>
-              <span>
-                {mineState === "open"
-                  ? t("cost.myOpen")
-                  : mineState === "reported"
-                    ? t("cost.myReported", { method: t(`cost.${cost.mine!.method}`), when: cost.mine!.reportedAt ? shortDateTime(cost.mine!.reportedAt) : "" })
-                    : t("cost.myConfirmed")}
-              </span>
-            </div>
-            {mineState !== "confirmed" ? (
-              <div className="device-actions">
-                {cost.paypalUrl ? (
-                  <a className="button-link secondary" href={cost.paypalUrl} target="_blank" rel="noreferrer noopener">
-                    {t("cost.payPaypal")}
-                  </a>
-                ) : null}
-                <button type="button" className="secondary" onClick={() => run("/events/__EVENT__/payment", { method: "PUT", body: JSON.stringify({ method: "paypal" }) })}>
-                  {t("cost.reportPaypal")}
-                </button>
-                <button type="button" className="secondary" onClick={() => run("/events/__EVENT__/payment", { method: "PUT", body: JSON.stringify({ method: "cash" }) })}>
-                  {t("cost.reportCash")}
-                </button>
-                {cost.mine ? (
-                  <button type="button" className="secondary danger" onClick={() => run("/events/__EVENT__/payment", { method: "PUT", body: JSON.stringify({ method: null }) })}>
-                    {t("cost.withdraw")}
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-          {mineState !== "confirmed" ? <p className="item-sub">{t("cost.nextStep")}</p> : null}
-        </>
-
-        {/* Orga-Sicht: Kennzahlen, Filter, Liste, Formular (zusätzlich zur Teilnehmer-Sicht) */}
-        {data.canManage && cost.payments ? (
+        {data.canManage ? (
           <>
-            <dl className="status-grid">
-              <div>
-                <dt>{t("cost.statConfirmed")}</dt>
-                <dd>{t("cost.statConfirmedValue", { confirmed: confirmedCount, total })}</dd>
-              </div>
-              <div>
-                <dt>{t("cost.statReported")}</dt>
-                <dd>{reportedCount}</dd>
-              </div>
-              <div>
-                <dt>{t("cost.statNothing")}</dt>
-                <dd>{nothingCount}</dd>
-              </div>
-              <div>
-                <dt>{t("cost.statCollected")}</dt>
-                <dd>{t("cost.statCollectedValue", { collected: money(confirmedCount * cost.amountCents, cost.currency), expected: money(total * cost.amountCents, cost.currency) })}</dd>
-              </div>
-            </dl>
-
-            <div className="tab-strip tab-strip--filter" role="tablist" aria-label={t("cost.filterLabel")}>
-              {COST_FILTERS.map((entry) => (
-                <button
-                  key={entry}
-                  type="button"
-                  role="tab"
-                  aria-selected={filter === entry}
-                  className={filter === entry ? "tab-strip__tab active" : "tab-strip__tab"}
-                  onClick={() => setFilter(entry)}
-                >
-                  {t(`cost.filter.${entry}`, { count: counts[entry] })}
-                </button>
-              ))}
-            </div>
-
-            {rows.length === 0 ? <p className="muted">{t("cost.listEmpty")}</p> : null}
-            <ul className="device-list">
-              {rows.map((entry) => {
-                const state = paymentState(entry.payment);
-                return (
-                  <li key={entry.user?.id} className="device-row">
-                    <div>
-                      <p className="item-title">
-                        <strong>{name(entry.user)}</strong> <RowBadge payment={entry.payment} />
-                      </p>
-                      <span>
-                        {state === "open"
-                          ? t("cost.rowNothing")
-                          : state === "reported"
-                            ? t("cost.rowReportedAt", { when: entry.payment!.reportedAt ? shortDateTime(entry.payment!.reportedAt) : "" })
-                            : t("cost.rowConfirmedAt", { when: entry.payment!.confirmedAt ? shortDateTime(entry.payment!.confirmedAt) : "" })}
-                      </span>
-                    </div>
-                    <div className="device-actions">
-                      {state === "reported" ? (
-                        <button
-                          type="button"
-                          className="secondary"
-                          onClick={() => run(`/events/__EVENT__/payments/${entry.user?.id}`, { method: "PUT", body: JSON.stringify({ status: "confirmed", method: entry.payment?.method ?? "cash" }) })}
-                        >
-                          {t("cost.confirm")}
-                        </button>
-                      ) : null}
-                      {state === "open" ? (
-                        <button type="button" className="secondary" onClick={() => run(`/events/__EVENT__/payments/${entry.user?.id}`, { method: "PUT", body: JSON.stringify({ status: "confirmed", method: "cash" }) })}>
-                          {t("cost.confirmCash")}
-                        </button>
-                      ) : null}
-                      {state === "confirmed" ? (
-                        <button type="button" className="secondary" onClick={() => run(`/events/__EVENT__/payments/${entry.user?.id}`, { method: "PUT", body: JSON.stringify({ status: "open" }) })}>
-                          {t("cost.reset")}
-                        </button>
-                      ) : null}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-
-            <details className="more-info">
-              <summary>{t("cost.edit")}</summary>
-              <CostEditForm cost={cost} draft={draft} setDraft={setDraft} save={save} run={run} />
-            </details>
+            {orgaView}
+            {participantView}
           </>
-        ) : null}
+        ) : (
+          participantView
+        )}
       </Section>
     );
   }

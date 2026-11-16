@@ -237,6 +237,16 @@ describe("Event-Extras Beitrag-Reiter (AP3)", () => {
     // Orga-Kennzahlen kommen zusätzlich darunter
     expect(element.querySelector(".status-grid")).toBeTruthy();
     expect(element.querySelector(".tab-strip--filter")?.textContent).toContain("Offen (7)");
+
+    // Reihenfolge für die Orga: Kennzahlen + Filter stehen VOR dem eigenen „Dein Beitrag",
+    // damit „wer hat noch nicht bezahlt" auch auf 390 px ohne Scrollen oben sichtbar ist
+    // (Konzept HCI-153 Abschnitt 2.4 „zuerst … Kennzahlen").
+    const grid = element.querySelector(".status-grid")!;
+    const filter = element.querySelector(".tab-strip--filter")!;
+    const mineTitle = [...element.querySelectorAll(".device-row strong")].find((node) => node.textContent?.trim() === "Dein Beitrag")!;
+    expect(mineTitle).toBeTruthy();
+    expect(grid.compareDocumentPosition(mineTitle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(filter.compareDocumentPosition(mineTitle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("Orga: Filter wird aus dem Pfad gelesen (.../beitrag/alle -> Vorauswahl Alle)", async () => {
