@@ -103,6 +103,26 @@ type CostState = "open" | "reported" | "confirmed";
 const paymentState = (payment: Payment): CostState => (!payment ? "open" : payment.status === "confirmed" ? "confirmed" : "reported");
 const COST_STATE_ORDER: Record<CostState, number> = { reported: 0, open: 1, confirmed: 2 };
 
+/**
+ * Teilt die Verleihliste in die Gruppen des Verleih-Reiters (Konzept HCI-153 Abschnitt 2.4):
+ * „Du hast ausgeliehen", „Frei" (nach Name sortiert), „Deine Angebote" und am Ende zusammengefasst
+ * die Sachen anderer, die gerade an jemand anderen verliehen sind.
+ */
+export function groupLendItems(items: LendItem[], meId: string, locale?: string) {
+  const byTitle = (a: LendItem, b: LendItem) => a.title.localeCompare(b.title, locale, { sensitivity: "base" });
+  const borrowed: LendItem[] = [];
+  const free: LendItem[] = [];
+  const offers: LendItem[] = [];
+  const lentToOthers: LendItem[] = [];
+  for (const item of items) {
+    if (item.owner?.id === meId) offers.push(item);
+    else if (item.out && item.borrowedBy?.id === meId) borrowed.push(item);
+    else if (!item.out) free.push(item);
+    else lentToOthers.push(item);
+  }
+  return { borrowed: borrowed.sort(byTitle), free: free.sort(byTitle), offers: offers.sort(byTitle), lentToOthers: lentToOthers.sort(byTitle) };
+}
+
 export default function createModule(host: ModuleClientHost) {
   const { t, api } = host;
   const name = (person: Person) => (person ? person.displayName || person.username : "–");
@@ -139,7 +159,7 @@ export default function createModule(host: ModuleClientHost) {
     );
   }
 
-  function AddItem({ list, run, withUrl, withQuantity }: { list: "install" | "bring" | "lend"; run: Run; withUrl?: boolean; withQuantity?: boolean }) {
+  function AddItem({ list, run, withUrl, withQuantity, submitLabel }: { list: "install" | "bring" | "lend"; run: Run; withUrl?: boolean; withQuantity?: boolean; submitLabel?: string }) {
     const [draft, setDraft] = useState({ title: "", details: "", url: "", quantity: "" });
     function submit(event: FormEvent) {
       event.preventDefault();
@@ -163,7 +183,7 @@ export default function createModule(host: ModuleClientHost) {
         ) : null}
         <input maxLength={1000} value={draft.details} placeholder={t("common.details")} onChange={(e) => setDraft({ ...draft, details: e.target.value })} />
         <button type="submit" disabled={!draft.title.trim()}>
-          {t("common.add")}
+          {submitLabel ?? t("common.add")}
         </button>
       </form>
     );
@@ -257,49 +277,102 @@ export default function createModule(host: ModuleClientHost) {
     );
   }
 
+  /** Zustand eines Verleih-Eintrags als Badge: frei grün, bei dir / verliehen amber, zurückgegeben neutral. */
+  function LendBadge({ item, meId }: { item: LendItem; meId: string }) {
+    if (item.out && item.borrowedBy?.id === meId) return <span className="badge badge--warn">{t("lend.badgeWithYou")}</span>;
+    if (item.out) return <span className="badge badge--warn">{t("lend.out", { name: name(item.borrowedBy) })}</span>;
+    if (item.returnedAt && item.owner?.id === meId) return <span className="badge">{t("lend.badgeReturned")}</span>;
+    return <span className="badge badge--ok">{t("lend.available")}</span>;
+  }
+
+  function LendRow({ item, data, run }: { item: LendItem; data: Overview; run: Run }) {
+    const mine = item.owner?.id === data.me.id;
+    const sub: string[] = [];
+    if (!mine) sub.push(t("lend.from", { name: name(item.owner) }));
+    if (item.out && item.borrowedAt) sub.push(t("lend.since", { when: shortDateTime(item.borrowedAt) }));
+    if (mine && !item.out) sub.push(item.returnedAt ? t("lend.returned", { name: name(item.borrowedBy) }) : t("lend.nobody"));
+    if (item.details) sub.push(item.details);
+    // Zurückgeben hängt nur an canReturn (Server), nicht am Eventstatus: geht auch nach Eventende.
+    const canBorrow = !item.out && !data.ended && !mine;
+    return (
+      <li className="device-row">
+        <div>
+          <p className="item-title">
+            <strong>{item.title}</strong> <LendBadge item={item} meId={data.me.id} />
+          </p>
+          {sub.length > 0 ? <p className="item-sub">{sub.join(" · ")}</p> : null}
+        </div>
+        {canBorrow || item.canReturn || (item.canEdit && !item.out) ? (
+          <div className="device-actions">
+            {canBorrow ? (
+              <button type="button" className="secondary" onClick={() => run(`/items/${item.id}/borrow`, { method: "POST", body: "{}" })}>
+                {t("lend.borrow")}
+              </button>
+            ) : null}
+            {item.canReturn ? (
+              <button type="button" className="secondary" onClick={() => run(`/items/${item.id}/return`, { method: "POST", body: "{}" })}>
+                {t("lend.return")}
+              </button>
+            ) : null}
+            {item.canEdit && !item.out ? (
+              <button type="button" className="secondary danger" onClick={() => run(`/items/${item.id}`, { method: "DELETE" })}>
+                {t("common.remove")}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+      </li>
+    );
+  }
+
+  function LendGroup({ group, title, items, data, run, empty }: { group: string; title: string; items: LendItem[]; data: Overview; run: Run; empty?: string }) {
+    if (items.length === 0 && !empty) return null;
+    return (
+      <div className="lend-group" data-group={group}>
+        <h4>{t("lend.groupTitle", { title, count: items.length })}</h4>
+        {items.length === 0 ? (
+          <p className="muted">{empty}</p>
+        ) : (
+          <ul className="device-list">
+            {items.map((item) => (
+              <LendRow key={item.id} item={item} data={data} run={run} />
+            ))}
+          </ul>
+        )}
+      </div>
+    );
+  }
+
   function LendTab({ data, run }: { data: Overview; run: Run }) {
+    const groups = groupLendItems(data.lend, data.me.id, host.locale);
     return (
       <Section title={t("tab.lend")}>
         <p className="muted">{t("lend.intro")}</p>
-        {data.lend.length === 0 ? <p className="muted">{t("common.empty")}</p> : null}
-        <ul className="device-list">
-          {data.lend.map((item) => (
-            <li key={item.id} className="device-row">
-              <div>
-                <p>
-                  <strong>{item.title}</strong> · {t("lend.from", { name: name(item.owner) })}
-                </p>
-                {item.details ? <small className="muted">{item.details}</small> : null}
-                <small className="muted">
-                  {" "}
-                  {item.out
-                    ? t("lend.out", { name: name(item.borrowedBy) })
-                    : item.returnedAt
-                      ? t("lend.returned", { name: name(item.borrowedBy) })
-                      : t("lend.available")}
-                </small>
-              </div>
-              <span>
-                {!item.out && !data.ended && item.owner?.id !== data.me.id ? (
-                  <button type="button" className="secondary" onClick={() => run(`/items/${item.id}/borrow`, { method: "POST", body: "{}" })}>
-                    {t("lend.borrow")}
-                  </button>
-                ) : null}
-                {item.canReturn ? (
-                  <button type="button" className="secondary" onClick={() => run(`/items/${item.id}/return`, { method: "POST", body: "{}" })}>
-                    {t("lend.return")}
-                  </button>
-                ) : null}
-                {item.canEdit && !item.out ? (
-                  <button type="button" className="secondary danger" onClick={() => run(`/items/${item.id}`, { method: "DELETE" })}>
-                    {t("common.remove")}
-                  </button>
-                ) : null}
-              </span>
-            </li>
-          ))}
-        </ul>
-        {!data.ended ? <AddItem list="lend" run={run} /> : null}
+        {data.lend.length === 0 ? (
+          <p className="muted">{t("lend.empty")}</p>
+        ) : (
+          <>
+            <LendGroup group="borrowed" title={t("lend.groupBorrowed")} items={groups.borrowed} data={data} run={run} />
+            <LendGroup group="free" title={t("lend.groupFree")} items={groups.free} data={data} run={run} empty={t("lend.freeEmpty")} />
+            <LendGroup group="offers" title={t("lend.groupOffers")} items={groups.offers} data={data} run={run} />
+            {groups.lentToOthers.length > 0 ? (
+              <details className="more-info lend-group" data-group="lentToOthers">
+                <summary>{t("lend.groupTitle", { title: t("lend.groupLentToOthers"), count: groups.lentToOthers.length })}</summary>
+                <ul className="device-list">
+                  {groups.lentToOthers.map((item) => (
+                    <LendRow key={item.id} item={item} data={data} run={run} />
+                  ))}
+                </ul>
+              </details>
+            ) : null}
+          </>
+        )}
+        {!data.ended ? (
+          <details className="more-info">
+            <summary>{t("lend.offer")}</summary>
+            <AddItem list="lend" run={run} submitLabel={t("lend.offerSubmit")} />
+          </details>
+        ) : null}
       </Section>
     );
   }
@@ -899,9 +972,10 @@ export default function createModule(host: ModuleClientHost) {
         ) : null}
         {error ? <p className="error">{error}</p> : null}
         {data?.ended ? <p className="muted">{t("page.readOnly")}</p> : null}
-        <nav className="extras-tabs" role="tablist">
+        {/* Kern-Baustein .tab-strip (AP0): eine Zeile, rollt auf dem Handy waagerecht statt umzubrechen. */}
+        <nav className="tab-strip" role="tablist">
           {TABS.map((entry) => (
-            <button key={entry} type="button" role="tab" aria-selected={tab === entry} className={tab === entry ? "" : "secondary"} onClick={() => setTab(entry)}>
+            <button key={entry} type="button" role="tab" aria-selected={tab === entry} className={tab === entry ? "tab-strip__tab active" : "tab-strip__tab"} onClick={() => setTab(entry)}>
               {t(`tab.${entry}`)}
             </button>
           ))}
