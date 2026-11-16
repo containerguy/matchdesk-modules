@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { ModuleAdminProps, ModuleClientHost, ModulePageProps } from "@matchdesk/module-sdk";
+import type { ModuleAdminProps, ModuleClientHost, ModuleProfileProps } from "@matchdesk/module-sdk";
 
 type Me = {
   configured: boolean;
@@ -23,7 +23,7 @@ type AdminStatus = {
 export default function createModule(host: ModuleClientHost) {
   const { t, api } = host;
 
-  function Page(_props: ModulePageProps) {
+  function Profile(_props: ModuleProfileProps) {
     const [me, setMe] = useState<Me | null>(null);
     const [linkUrl, setLinkUrl] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -150,5 +150,5 @@ export default function createModule(host: ModuleClientHost) {
     );
   }
 
-  return { Page, Admin };
+  return { Profile, Admin };
 }

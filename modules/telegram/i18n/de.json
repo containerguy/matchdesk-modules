@@ -7,13 +7,13 @@
   "page.openAgain": "Link erneut öffnen",
   "page.linked": "Dein Telegram-Konto ist verknüpft.",
   "page.linkedAs": "Verknüpft mit {name}.",
-  "page.turnOn": "Im Profil unter Benachrichtigungen kannst du Telegram ein- und ausschalten.",
+  "page.turnOn": "Unter Benachrichtigungen kannst du Telegram ein- und ausschalten.",
   "page.unlink": "Verknüpfung lösen",
   "page.blocked": "Der Bot konnte dir zuletzt nichts schicken, vermutlich wurde er blockiert. Verknüpfe neu, um wieder Nachrichten zu bekommen.",
   "admin.configured": "Der Bot {bot} ist eingerichtet.",
   "admin.notConfigured": "Noch nicht eingerichtet. Bei @BotFather in Telegram mit /newbot einen Bot anlegen, den Token oben unter Zugangsdaten eintragen (oder als Umgebungsvariable MATCHDESK_TELEGRAM_BOT_TOKEN setzen und neu starten).",
   "admin.linked": "Verknüpfte Konten: {linked} (davon blockiert: {blocked})",
   "admin.test": "Testnachricht an mein Telegram",
-  "admin.linkFirst": "Für eine Testnachricht erst im Menüpunkt Telegram dein eigenes Konto verknüpfen.",
+  "admin.linkFirst": "Für eine Testnachricht erst im Profil dein eigenes Telegram-Konto verknüpfen.",
   "admin.testOk": "Testnachricht ist unterwegs."
 }
