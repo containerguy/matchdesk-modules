@@ -13,7 +13,7 @@ Webhook-Adresse.
    verschlüsselt gespeichert, das Modul startet sofort neu und zeigt darunter den Bot-Namen. Alternativ die
    Umgebungsvariable `MATCHDESK_TELEGRAM_BOT_TOKEN` setzen (hat Vorrang, braucht einen Neustart; vor
    Matchdesk 0.21 der einzige Weg).
-4. Selbst im Menüpunkt **Telegram** auf „Telegram verknüpfen“ klicken, in Telegram „Starten“ tippen und
+4. Selbst im Profil im Bereich **Telegram** auf „Telegram verknüpfen“ klicken, in Telegram „Starten“ tippen und
    unter Admin › Module › Telegram die Testnachricht schicken.
 
 Benutzer verknüpfen ihr Konto genauso und schalten Telegram dann im Profil unter Benachrichtigungen ein.
@@ -26,7 +26,7 @@ den Bot ein Webhook gesetzt, meldet die Admin-Seite einen Fehler von Telegram.
 
 ## Rechte
 
-- `telegram.receive`: Menüpunkt sehen, verknüpfen und Event-Infos bekommen (Vorgabe: alle Benutzer)
+- `telegram.receive`: Profilbereich sehen, verknüpfen und Event-Infos bekommen (Vorgabe: alle Benutzer)
 - `telegram.manage`: Admin-Seite mit Stand und Testnachricht (nur Admins)
 
 ## Einstellungen

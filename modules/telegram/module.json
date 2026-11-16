@@ -30,17 +30,13 @@
       }
     }
   ],
-  "menu": [
-    {
-      "path": "",
-      "label": {
-        "de": "Telegram",
-        "en": "Telegram"
-      },
-      "order": 70,
-      "permission": "telegram.receive"
-    }
-  ],
+  "profile": {
+    "label": {
+      "de": "Telegram",
+      "en": "Telegram"
+    },
+    "order": 70
+  },
   "adminPage": true,
   "tables": [
     "telegram_links",

@@ -71,7 +71,7 @@ export function setup(ctx: ModuleContext) {
         | undefined;
       ctx.db.prepare("DELETE FROM telegram_link_codes WHERE code = ? OR expires_at <= ?").run(argument, now);
       if (!code) {
-        await reply(chatId, english ? "This link has expired. Open Telegram in Matchdesk and link again." : "Der Link ist abgelaufen. Öffne in Matchdesk den Menüpunkt Telegram und verknüpfe neu.");
+        await reply(chatId, english ? "This link has expired. Open your Matchdesk profile and link Telegram again." : "Der Link ist abgelaufen. Öffne in Matchdesk dein Profil und verknüpfe Telegram neu.");
         return;
       }
       ctx.db.transaction(() => {
@@ -105,7 +105,7 @@ export function setup(ctx: ModuleContext) {
       chatId,
       english
         ? "Hi! To get event updates here, open Telegram in Matchdesk and click “Link Telegram”."
-        : "Hallo! Für Event-Infos hier öffne in Matchdesk den Menüpunkt Telegram und klicke auf „Telegram verknüpfen“."
+        : "Hallo! Für Event-Infos hier öffne in Matchdesk dein Profil und klicke auf „Telegram verknüpfen“."
     );
   }
 
@@ -155,8 +155,8 @@ export function setup(ctx: ModuleContext) {
       return Boolean(link && !link.blocked_at);
     },
     unavailableHint: {
-      de: "Erst im Menüpunkt Telegram dein Konto verknüpfen.",
-      en: "Link your account under Telegram in the menu first."
+      de: "Erst im Profil dein Telegram-Konto verknüpfen.",
+      en: "Link your Telegram account in your profile first."
     },
     send: (user, message) => sendTo(user, composeTelegram(message, settings()))
   });
