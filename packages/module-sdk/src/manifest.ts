@@ -73,6 +73,8 @@ export const moduleManifestSchema = z
       .optional(),
     /** Hinweis oben auf der Startseite, gerendert von `Notice` aus client.mjs. */
     startNotice: z.boolean().default(false),
+    /** Hinweiszeile je Event-Karte unter „Events“, gerendert von `EventNotice` aus client.mjs. */
+    eventNotice: z.boolean().default(false),
     /** Alle Tabellen des Moduls in FK-Reihenfolge (für Backup, Export und Deinstallation). */
     tables: z.array(z.string().regex(/^[a-z][a-z0-9_]*$/)).default([]),
     /** Namen von Umgebungsvariablen (ohne MATCHDESK_-Präfix), die das Modul lesen darf. */

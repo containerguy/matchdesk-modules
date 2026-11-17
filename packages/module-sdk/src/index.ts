@@ -194,6 +194,13 @@ export type ModuleProfileProps = { user: ModuleClientUser };
 
 export type ModuleNoticeProps = { user: ModuleClientUser };
 
+export type ModuleEventNoticeProps = {
+  user: ModuleClientUser;
+  mainEventId: string;
+  myParticipation: ModuleParticipantStatus | null;
+  permissions: string[];
+};
+
 export type ModuleClientDefinition = {
   Page?: ComponentType<ModulePageProps>;
   Admin?: ComponentType<ModuleAdminProps>;
@@ -201,6 +208,8 @@ export type ModuleClientDefinition = {
   Profile?: ComponentType<ModuleProfileProps>;
   /** Hinweis oben auf der Startseite (Manifest `startNotice`); `null`, wenn nichts zu sagen ist. */
   Notice?: ComponentType<ModuleNoticeProps>;
+  /** Hinweiszeile in einer Event-Karte (Manifest `eventNotice`); `null`, wenn nichts zu sagen ist. */
+  EventNotice?: ComponentType<ModuleEventNoticeProps>;
 };
 
 export type ModuleClientFactory = (host: ModuleClientHost) => ModuleClientDefinition;

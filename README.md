@@ -109,6 +109,21 @@ await mod.stop();
 Die Testhilfe baut SQLite im Speicher mit den Kerntabellen `users`, `main_events`, `game_events`, spielt die
 Migrationen des Moduls ein und zeichnet Push, Realtime und Audit auf (`mod.pushes`, `mod.broadcasts`, `mod.audits`).
 
+## Wohin gehört meine Oberfläche?
+
+Diese Übersicht wächst mit HCI-120 (dort folgen `Page`, `Admin`, `Profile` und `Notice`). Hier nur der neue
+Slot `EventNotice`.
+
+| Slot | Manifest | Wo | Export aus `client.mjs` |
+| --- | --- | --- | --- |
+| `EventNotice` | `eventNotice: true` | Hinweiszeile in jeder Event-Karte unter „Events" (auch bei beendeten Events) | `EventNotice` |
+
+`EventNotice` bekommt `{ user, mainEventId, myParticipation, permissions }` (Typ `ModuleEventNoticeProps` in
+`packages/module-sdk/src/index.ts`). Der Kern rendert den Slot für jede sichtbare Karte neu mit der
+`mainEventId` dieser Karte; ändert sich die Teilnahme des Benutzers an einem Event, rendert nur der
+betroffene Slot neu, ohne dass die Seite neu lädt. Stürzt die Komponente ab, bleibt die Karte unverändert
+stehen: der Fehler geht nur in die Konsole, es erscheint kein roter Fehlerblock (anders als bei `Page`).
+
 ## Oberfläche: gemeinsame Bausteine
 
 Matchdesk zeigt jede Modulseite unter dem Seitenkopf in einer eigenen Karte (`.page-card`). Der Seitenkopf
