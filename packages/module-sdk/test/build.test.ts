@@ -155,3 +155,12 @@ describe("Index-Datei", () => {
     expect(() => addRelease(second, { manifest, url: "egal", sha256: "c".repeat(64) })).toThrow(/unveränderlich/);
   });
 });
+
+describe("profile.permission", () => {
+  const base = { id: "hallo", name: "Hallo", version: "1.0.0", matchdeskApi: 1 };
+  it("accepts a declared permission and rejects an unknown one", () => {
+    const permissions = [{ key: "hallo.use", label: "Nutzen" }];
+    expect(moduleManifestSchema.safeParse({ ...base, permissions, profile: { label: "X", permission: "hallo.use" } }).success).toBe(true);
+    expect(moduleManifestSchema.safeParse({ ...base, permissions, profile: { label: "X", permission: "hallo.nein" } }).success).toBe(false);
+  });
+});
