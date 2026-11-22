@@ -124,6 +124,55 @@ Slot `EventNotice`.
 betroffene Slot neu, ohne dass die Seite neu lädt. Stürzt die Komponente ab, bleibt die Karte unverändert
 stehen: der Fehler geht nur in die Konsole, es erscheint kein roter Fehlerblock (anders als bei `Page`).
 
+### Menüpunkte unter „Spiele“
+
+Ein Menüeintrag im Manifest erscheint standardmäßig unter „Mitmachen“. Mit `"section": "games"` landet er
+stattdessen unter dem Hauptmenüpunkt **Spiele** (`#games`, ab der nächsten Matchdesk-Version). Der Kern zeigt dort eine
+Kachel je Eintrag (Text aus `description`). Gibt es nur einen Eintrag, rendert er die Seite des Moduls direkt,
+ohne Rahmenkarte (volle Breite, für eingebettete Spiele).
+
+```json
+"menu": [{ "path": "", "section": "games", "label": { "de": "Spiele", "en": "Games" },
+           "description": { "de": "…", "en": "…" }, "permission": "arena.play" }]
+```
+
+## Modul `arena`: Spiele in Matchdesk
+
+`modules/arena` bindet Spiele mit eigenem Server ein, zuerst Billard (Repo `matchdesk-billiard`). Ablauf:
+Hauptmenü „Spiele“ → Spieleauswahl → Lobby des Spiels → Herausforderung → beide spielen im selben Tab,
+das Spiel steckt als iframe in Matchdesk (`#games/arena/billiard/match/<id>`).
+
+- Der Spielserver liegt unter derselben Adresse wie Matchdesk, im Reverse Proxy unter
+  `/game-servers/billiard/` (Einstellung `billiardPath`). So greift die Sicherheitsrichtlinie von Matchdesk
+  nicht ein, und es braucht keine Änderung daran.
+- Matchdesk-Server → Spielserver: `POST <billiardApiUrl>/api/integrations/v1/tables` mit Bearer-Schlüssel
+  (Secret `BILLIARD_API_KEY`). Der Spielserver reserviert einen Tisch und gibt je Platz einen Link zurück.
+- Spielserver → Matchdesk: signierte Ereignisse an `<callbackBaseUrl>/api/m/arena/webhook/billiard`
+  (HMAC-SHA256 über `<timestamp>.<body>`, Secret `BILLIARD_WEBHOOK_SECRET`). Zusätzlich fragt das Modul
+  offene Partien jede Minute ab, falls ein Ereignis verloren geht.
+- Ein weiteres Spiel ist ein Eintrag in `modules/arena/src/games.ts` plus Einstellungen und Secrets; der
+  Spielserver spricht dieselbe Schnittstelle.
+
+## E2E-Test (Pflicht-Check)
+
+`e2e/games.spec.ts` prüft die Anbindung von Anfang bis Ende mit echten Servern: Matchdesk mit dem frisch
+gebauten `arena`, der Billard-Server unter `/game-servers/billiard` und davor ein kleiner Proxy in der Rolle
+des Nginx Proxy Manager. Zwei Spieler gehen über Hauptmenü und Spieleauswahl an den Tisch, einer setzt die
+weiße Kugel und stößt, der Stoß muss beim anderen ankommen, dann gibt einer auf und das Ergebnis muss in
+Matchdesk stehen. Lokal:
+
+```bash
+# Nachbar-Repos daneben auschecken (oder MATCHDESK_DIR / BILLIARD_DIR setzen)
+(cd ../Matchdesk && npm ci && npx vite build)
+(cd ../matchdesk-billiard && npm ci && npm run build)
+npx playwright install chromium
+npm run e2e
+```
+
+In GitHub läuft er als Workflow „E2E Spiele“ bei jedem PR. Damit er verbindlich ist, unter
+Settings › Branches › Branch protection den Check „E2E Spiele (Menü, Auswahl, Billard spielen, Ergebnis)“
+als erforderlich eintragen.
+
 ## Oberfläche: gemeinsame Bausteine
 
 Matchdesk zeigt jede Modulseite unter dem Seitenkopf in einer eigenen Karte (`.page-card`). Der Seitenkopf

@@ -1,0 +1,87 @@
+name: E2E Spiele
+
+# Pflicht-Test der Spiele-Anbindung über alle drei Repos: Matchdesk (Kern), dieses Repo (Modul arena)
+# und den Billard-Server. Er klickt Hauptmenü „Spiele“ → Spieleauswahl → Billard, fordert heraus,
+# spielt eingebettet einen Stoß, gibt auf und prüft das Ergebnis in Matchdesk.
+#
+# Matchdesk wird vom Branch MATCHDESK_BRANCH geholt, solange es ihn gibt, sonst von main
+# (der Hauptmenüpunkt „Spiele“ ist dort noch nicht gemergt). Sind die Nachbar-Repos privat, braucht
+# es ein Secret E2E_REPOS_TOKEN mit Lesezugriff auf beide.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  MATCHDESK_BRANCH: claude/project-thread-32y5c4
+
+jobs:
+  games:
+    name: E2E Spiele (Menü, Auswahl, Billard spielen, Ergebnis)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Matchdesk-Stand wählen
+        id: ref
+        env:
+          TOKEN: ${{ secrets.E2E_REPOS_TOKEN || github.token }}
+        run: |
+          if git ls-remote --exit-code --heads "https://x-access-token:${TOKEN}@github.com/containerguy/Matchdesk" "$MATCHDESK_BRANCH" >/dev/null 2>&1; then
+            echo "matchdesk=$MATCHDESK_BRANCH" >> "$GITHUB_OUTPUT"
+          else
+            echo "matchdesk=main" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v5
+        with:
+          repository: containerguy/Matchdesk
+          ref: ${{ steps.ref.outputs.matchdesk }}
+          path: _e2e/Matchdesk
+          token: ${{ secrets.E2E_REPOS_TOKEN || github.token }}
+
+      - uses: actions/checkout@v5
+        with:
+          repository: containerguy/matchdesk-billiard
+          path: _e2e/matchdesk-billiard
+          token: ${{ secrets.E2E_REPOS_TOKEN || github.token }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            _e2e/Matchdesk/package-lock.json
+            _e2e/matchdesk-billiard/package-lock.json
+
+      - name: Matchdesk bauen
+        working-directory: _e2e/Matchdesk
+        run: npm ci && npx vite build
+
+      - name: Billard bauen
+        working-directory: _e2e/matchdesk-billiard
+        run: npm ci && npm run build
+
+      - name: Module und Browser
+        run: npm ci && npx playwright install --with-deps chromium
+
+      - name: E2E
+        env:
+          MATCHDESK_DIR: ${{ github.workspace }}/_e2e/Matchdesk
+          BILLIARD_DIR: ${{ github.workspace }}/_e2e/matchdesk-billiard
+        run: npm run e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7

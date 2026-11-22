@@ -3,3 +3,6 @@ dist/
 *.tgz
 !packages/module-sdk/test/fixtures/*.tgz
 .settings-*.mjs
+test-results/
+playwright-report/
+_e2e/

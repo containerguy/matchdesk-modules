@@ -68,7 +68,21 @@ CREATE TABLE main_event_invites (
   invited_by_user_id TEXT,
   created_at TEXT
 );
-CREATE TABLE game_events (id TEXT PRIMARY KEY, title TEXT NOT NULL, main_event_id TEXT REFERENCES main_events(id) ON DELETE SET NULL);
+CREATE TABLE game_events (
+  id TEXT PRIMARY KEY,
+  game_title TEXT NOT NULL,
+  main_event_id TEXT REFERENCES main_events(id) ON DELETE SET NULL,
+  status TEXT NOT NULL DEFAULT 'open',
+  starts_at TEXT,
+  min_players INTEGER NOT NULL DEFAULT 1,
+  max_players INTEGER NOT NULL DEFAULT 2
+);
+CREATE TABLE participations (
+  id TEXT PRIMARY KEY,
+  event_id TEXT NOT NULL REFERENCES game_events(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  status TEXT NOT NULL
+);
 `;
 
 export type TestModuleOptions = {

@@ -45,7 +45,14 @@ const menuEntrySchema = z.object({
   icon: z.string().max(2000).optional(),
   order: z.number().int().min(0).max(1000).default(50),
   /** Nur sichtbar mit diesem Recht; fehlt es, sehen alle Angemeldeten den Eintrag. */
-  permission: z.string().optional()
+  permission: z.string().optional(),
+  /**
+   * Sammelseite: `mitmachen` (Standard, `#mitmachen/<id>/<path>`) oder `games` (Hauptmenüpunkt
+   * „Spiele“, `#games/<id>/<path>`, Seite ohne Seitenkopf und Karte). Ältere Kerne ignorieren das Feld.
+   */
+  section: z.enum(["mitmachen", "games"]).default("mitmachen"),
+  /** Kurzbeschreibung, z. B. für die Kachel in der Spieleauswahl. */
+  description: localizedTextSchema.optional()
 });
 
 export const moduleManifestSchema = z
