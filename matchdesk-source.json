@@ -3,6 +3,26 @@
   "name": "Matchdesk (offiziell)",
   "modules": [
     {
+      "id": "arena",
+      "name": {
+        "de": "Spiele",
+        "en": "Games"
+      },
+      "description": {
+        "de": "Spiele direkt in Matchdesk: Mitspieler herausfordern und die Partie eingebettet spielen, ohne neuen Tab. Zuerst Billard.",
+        "en": "Play games right inside Matchdesk: challenge someone and play embedded, no new tab. Billiards first."
+      },
+      "versions": [
+        {
+          "version": "1.0.0",
+          "matchdeskApi": 1,
+          "url": "https://github.com/containerguy/matchdesk-modules/releases/download/arena-v1.0.0/arena-1.0.0.tgz",
+          "sha256": "1551d4f07d6f3bece4d96a83e9da47427da61c6c830f38036aed8fc1fbda4b0c",
+          "publishedAt": "2026-11-22T23:15:16.851Z"
+        }
+      ]
+    },
+    {
       "id": "extras",
       "name": {
         "de": "Event-Extras",
