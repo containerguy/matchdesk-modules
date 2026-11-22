@@ -1,0 +1,39 @@
+{
+  "id": "arena",
+  "name": { "de": "Spiele", "en": "Games" },
+  "description": {
+    "de": "Spiele direkt in Matchdesk: Mitspieler herausfordern und die Partie eingebettet spielen, ohne neuen Tab. Zuerst Billard.",
+    "en": "Play games right inside Matchdesk: challenge someone and play embedded, no new tab. Billiards first."
+  },
+  "author": "Matchdesk",
+  "homepage": "https://github.com/containerguy/matchdesk-modules/tree/main/modules/arena",
+  "license": "GPL-3.0-only",
+  "permissions": [
+    {
+      "key": "arena.play",
+      "label": { "de": "Spielen und herausfordern", "en": "Play and challenge" },
+      "scopable": true,
+      "defaultRoles": ["user"]
+    },
+    {
+      "key": "arena.manage",
+      "label": { "de": "Partien verwalten", "en": "Manage matches" },
+      "description": { "de": "Fremde Herausforderungen absagen.", "en": "Cancel other people's challenges." },
+      "defaultRoles": ["manager"]
+    }
+  ],
+  "menu": [
+    {
+      "path": "",
+      "section": "games",
+      "label": { "de": "Spiele", "en": "Games" },
+      "description": { "de": "Mitspieler herausfordern und direkt hier spielen.", "en": "Challenge someone and play right here." },
+      "icon": "M17.3 6H6.7a4.7 4.7 0 0 0-4.6 3.9l-.9 5.4A2.6 2.6 0 0 0 5.6 17.6L8 15h8l2.4 2.6a2.6 2.6 0 0 0 4.4-2.3l-.9-5.4A4.7 4.7 0 0 0 17.3 6Z",
+      "order": 10,
+      "permission": "arena.play"
+    }
+  ],
+  "startNotice": true,
+  "secrets": ["BILLIARD_API_KEY", "BILLIARD_WEBHOOK_SECRET"],
+  "tables": ["arena_matches"]
+}

@@ -9,6 +9,7 @@
   ],
   "scripts": {
     "test": "vitest run",
+    "e2e": "playwright test -c e2e/playwright.config.ts",
     "typecheck": "tsc --noEmit -p .",
     "build": "tsx packages/module-sdk/src/cli.ts build-all",
     "matchdesk-module": "tsx packages/module-sdk/src/cli.ts"
@@ -17,6 +18,7 @@
     "node": ">=22"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/better-sqlite3": "^9.6.0",
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.6",

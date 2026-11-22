@@ -12,5 +12,5 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["packages/*/src", "packages/*/test", "modules/*/src", "modules/*/test"]
+  "include": ["packages/*/src", "packages/*/test", "modules/*/src", "modules/*/test", "e2e"]
 }
