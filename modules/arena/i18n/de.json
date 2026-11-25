@@ -1,7 +1,7 @@
 {
   "nav.games": "Spiele",
   "picker.title": "Spiele",
-  "picker.hint": "Wähle ein Spiel, fordere jemanden heraus und spiel direkt hier.",
+  "picker.hint": "Wähle ein Spiel, öffne einen Tisch und spiel direkt hier.",
   "picker.empty": "Noch kein Spiel eingerichtet. Ein Admin trägt die Spielserver unter Admin › Module › Spiele ein.",
   "lobby.unknown": "Dieses Spiel gibt es hier nicht.",
   "lobby.opponent": "Gegner",
@@ -22,5 +22,18 @@
   "match.ended": "Partie beendet",
   "match.closed": "Dieser Tisch ist geschlossen.",
   "match.notYours": "Du sitzt nicht an diesem Tisch.",
-  "notice.challenge": "{name} fordert dich heraus."
+  "notice.challenge": "{name} fordert dich heraus.",
+  "lobby.openTable": "Tisch öffnen",
+  "lobby.openTableHint": "Fordere jemanden heraus oder spiel gegen den Computer.",
+  "table.title": "Tisch öffnen",
+  "table.player": "Gegen einen Mitspieler",
+  "table.playerHint": "Dein Gegner bekommt eine Benachrichtigung und kommt über „Zum Tisch“ dazu.",
+  "table.computer": "Gegen den Computer",
+  "table.computerHint": "Sofort loslegen, ganz ohne Gegner. Das Ergebnis zählt nicht in Matchdesk.",
+  "table.level": "Stufe",
+  "table.start": "Partie starten",
+  "level.easy": "Leicht",
+  "level.medium": "Mittel",
+  "level.hard": "Schwer",
+  "computer.title": "Gegen den Computer ({level})"
 }

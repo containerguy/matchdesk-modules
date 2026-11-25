@@ -111,7 +111,16 @@ export function register(ctx: ModuleContext) {
 
   ctx.router.get("/games", (request, response) => {
     if (!requirePlayer(request, response)) return;
-    response.json({ games: availableGames().map((game) => ({ id: game.id, name: game.name, description: game.description })) });
+    const s = settings();
+    response.json({
+      games: availableGames().map((game) => ({
+        id: game.id,
+        name: game.name,
+        description: game.description,
+        embedPath: joinUrl(game.path(s), ""),
+        computerLevels: game.computerLevels
+      }))
+    });
   });
 
   ctx.router.get("/players", (request, response) => {

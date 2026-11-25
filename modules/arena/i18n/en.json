@@ -1,7 +1,7 @@
 {
   "nav.games": "Games",
   "picker.title": "Games",
-  "picker.hint": "Pick a game, challenge someone and play right here.",
+  "picker.hint": "Pick a game, open a table and play right here.",
   "picker.empty": "No game set up yet. An admin adds the game servers under Admin › Modules › Games.",
   "lobby.unknown": "This game is not available here.",
   "lobby.opponent": "Opponent",
@@ -22,5 +22,18 @@
   "match.ended": "Game over",
   "match.closed": "This table is closed.",
   "match.notYours": "You are not seated at this table.",
-  "notice.challenge": "{name} challenges you."
+  "notice.challenge": "{name} challenges you.",
+  "lobby.openTable": "Open table",
+  "lobby.openTableHint": "Challenge someone or play against the computer.",
+  "table.title": "Open table",
+  "table.player": "Against a player",
+  "table.playerHint": "Your opponent gets a notification and joins via “To the table”.",
+  "table.computer": "Against the computer",
+  "table.computerHint": "Start right away, no opponent needed. The result is not recorded in Matchdesk.",
+  "table.level": "Level",
+  "table.start": "Start game",
+  "level.easy": "Easy",
+  "level.medium": "Medium",
+  "level.hard": "Hard",
+  "computer.title": "Against the computer ({level})"
 }

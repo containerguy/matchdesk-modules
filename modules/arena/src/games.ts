@@ -15,6 +15,8 @@ export type GameDef = {
   enabled: (settings: ArenaSettings) => boolean;
   apiKeySecret: string;
   webhookSecret: string;
+  /** Stufen des Computergegners; das Spiel läuft dafür ohne Server im Browser (`?embed=1&solo=<stufe>`). */
+  computerLevels: string[];
 };
 
 export const GAMES: GameDef[] = [
@@ -26,7 +28,8 @@ export const GAMES: GameDef[] = [
     apiUrl: (s) => s.billiardApiUrl,
     enabled: (s) => s.billiardEnabled,
     apiKeySecret: "BILLIARD_API_KEY",
-    webhookSecret: "BILLIARD_WEBHOOK_SECRET"
+    webhookSecret: "BILLIARD_WEBHOOK_SECRET",
+    computerLevels: ["easy", "medium", "hard"]
   }
 ];
 

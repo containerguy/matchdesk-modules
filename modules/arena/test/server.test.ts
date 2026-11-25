@@ -62,6 +62,7 @@ describe("Modul Spiele (arena)", () => {
     module = await createTestModule({ moduleDir, register, settings, secrets });
     const games = await request(module.app).get("/api/m/arena/games").set("x-test-user", "anna").expect(200);
     expect(games.body.games.map((g: { id: string }) => g.id)).toEqual(["billiard"]);
+    expect(games.body.games[0]).toMatchObject({ embedPath: "/game-servers/billiard/", computerLevels: ["easy", "medium", "hard"] });
     await request(module.app).get("/api/m/arena/games").expect(401);
   });
 
