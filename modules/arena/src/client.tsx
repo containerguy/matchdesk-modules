@@ -89,7 +89,21 @@ export default function createModule(host: ModuleClientHost) {
     );
   }
 
-  const LOGOS: Record<string, () => ReactElement> = { billiard: BilliardLogo, shift: ShiftLogo };
+  /** Gartenfehde-Zeichen: Gartenzwerg mit roter Zipfelmütze und Wassertropfen. */
+  function GnomesLogo() {
+    return (
+      <svg className="arena-logo" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label={t("logo.gnomes")}>
+        <rect x="2" y="2" width="60" height="60" rx="14" fill="#6FB04A" />
+        <path d="M32 8 L46 32 H18 Z" fill="#D7263D" />
+        <circle cx="32" cy="38" r="11" fill="#F2B9A0" />
+        <path d="M19 38 Q32 62 45 38 Q32 47 19 38 Z" fill="#FFFFFF" />
+        <circle cx="32" cy="38" r="3.2" fill="#E08A6E" />
+        <path d="M50 12 C46 18 46 21 50 21 C54 21 54 18 50 12 Z" fill="#5EC8F2" />
+      </svg>
+    );
+  }
+
+  const LOGOS: Record<string, () => ReactElement> = { billiard: BilliardLogo, shift: ShiftLogo, gnomes: GnomesLogo };
 
   function GamePicker() {
     const { games, error } = useGames();

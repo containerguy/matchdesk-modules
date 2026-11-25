@@ -26,16 +26,21 @@ const BILLIARD_DIR = path.resolve(process.env.BILLIARD_DIR ?? path.join(repoRoot
 const BILLIARD_PATH = "/game-servers/billiard";
 const SHIFT_DIR = path.resolve(process.env.SHIFT_DIR ?? path.join(repoRoot, "../matchdesk-shift"));
 const SHIFT_PATH = "/game-servers/shift";
+const GNOMES_DIR = path.resolve(process.env.GNOMES_DIR ?? path.join(repoRoot, "../matchdesk-gnomes"));
+const GNOMES_PATH = "/game-servers/gnomes";
 const API_KEY = `e2e-key-${randomUUID()}`;
 const WEBHOOK_SECRET = `e2e-secret-${randomUUID()}`;
 const SHIFT_API_KEY = `e2e-shift-key-${randomUUID()}`;
 const SHIFT_WEBHOOK_SECRET = `e2e-shift-secret-${randomUUID()}`;
+const GNOMES_API_KEY = `e2e-gnomes-key-${randomUUID()}`;
+const GNOMES_WEBHOOK_SECRET = `e2e-gnomes-secret-${randomUUID()}`;
 
 let tempDir: string;
 let matchdeskServer: http.Server;
 let closeMatchdesk: () => Promise<void>;
 let billiard: ChildProcess;
 let shift: ChildProcess;
+let gnomes: ChildProcess;
 let closeProxy: () => Promise<void>;
 let baseUrl: string;
 const originalCwd = process.cwd();
@@ -118,7 +123,8 @@ test.beforeAll(async () => {
   for (const [name, dir] of [
     ["MATCHDESK_DIR", path.join(MATCHDESK_DIR, "dist/index.html")],
     ["BILLIARD_DIR", path.join(BILLIARD_DIR, "apps/client/dist/index.html")],
-    ["SHIFT_DIR", path.join(SHIFT_DIR, "apps/client/dist/index.html")]
+    ["SHIFT_DIR", path.join(SHIFT_DIR, "apps/client/dist/index.html")],
+    ["GNOMES_DIR", path.join(GNOMES_DIR, "apps/client/dist/index.html")]
   ]) {
     if (!fs.existsSync(dir)) throw new Error(`${name}: ${dir} fehlt. Erst bauen (siehe README, Abschnitt E2E).`);
   }
@@ -129,6 +135,7 @@ test.beforeAll(async () => {
   const matchdeskPort = await freePort();
   const billiardPort = await freePort();
   const shiftPort = await freePort();
+  const gnomesPort = await freePort();
 
   // Billard-Server, wie im Betrieb unter einem Unterpfad.
   billiard = spawn(process.execPath, ["--import", "tsx", "apps/server/src/index.ts"], {
@@ -158,6 +165,21 @@ test.beforeAll(async () => {
   });
   await waitForHttp(`http://127.0.0.1:${shiftPort}${SHIFT_PATH}/health`);
 
+  // Gartenfehde-Server mit kurzer Testaufstellung (QUICK_GAMES), damit Partien schnell enden.
+  gnomes = spawn(process.execPath, ["--import", "tsx", "apps/server/src/index.ts"], {
+    cwd: GNOMES_DIR,
+    env: {
+      ...process.env,
+      PORT: String(gnomesPort),
+      BASE_PATH: GNOMES_PATH,
+      INTEGRATION_API_KEY: GNOMES_API_KEY,
+      INTEGRATION_WEBHOOK_SECRET: GNOMES_WEBHOOK_SECRET,
+      QUICK_GAMES: "1"
+    },
+    stdio: ["ignore", "inherit", "inherit"]
+  });
+  await waitForHttp(`http://127.0.0.1:${gnomesPort}${GNOMES_PATH}/health`);
+
   // Matchdesk im Testprozess. Der Kern liefert dist/ relativ zum Arbeitsverzeichnis aus.
   Object.assign(process.env, {
     MATCHDESK_DB_PATH: path.join(tempDir, "matchdesk.sqlite"),
@@ -170,7 +192,9 @@ test.beforeAll(async () => {
     MATCHDESK_BILLIARD_API_KEY: API_KEY,
     MATCHDESK_BILLIARD_WEBHOOK_SECRET: WEBHOOK_SECRET,
     MATCHDESK_SHIFT_API_KEY: SHIFT_API_KEY,
-    MATCHDESK_SHIFT_WEBHOOK_SECRET: SHIFT_WEBHOOK_SECRET
+    MATCHDESK_SHIFT_WEBHOOK_SECRET: SHIFT_WEBHOOK_SECRET,
+    MATCHDESK_GNOMES_API_KEY: GNOMES_API_KEY,
+    MATCHDESK_GNOMES_WEBHOOK_SECRET: GNOMES_WEBHOOK_SECRET
   });
   delete process.env.MATCHDESK_STORAGE_BACKEND;
   delete process.env.MATCHDESK_VAPID_PUBLIC_KEY;
@@ -196,7 +220,9 @@ test.beforeAll(async () => {
       billiardApiUrl: `http://127.0.0.1:${billiardPort}${BILLIARD_PATH}`,
       billiardPath: `${BILLIARD_PATH}/`,
       shiftApiUrl: `http://127.0.0.1:${shiftPort}${SHIFT_PATH}`,
-      shiftPath: `${SHIFT_PATH}/`
+      shiftPath: `${SHIFT_PATH}/`,
+      gnomesApiUrl: `http://127.0.0.1:${gnomesPort}${GNOMES_PATH}`,
+      gnomesPath: `${GNOMES_PATH}/`
     }
   });
   matchdeskServer = started.app.listen(matchdeskPort, "127.0.0.1");
@@ -205,7 +231,8 @@ test.beforeAll(async () => {
   // Vorne der Proxy (Rolle des Nginx Proxy Manager).
   const proxy = await startProxy([
     { prefix: `${BILLIARD_PATH}/`, port: billiardPort },
-    { prefix: `${SHIFT_PATH}/`, port: shiftPort }
+    { prefix: `${SHIFT_PATH}/`, port: shiftPort },
+    { prefix: `${GNOMES_PATH}/`, port: gnomesPort }
   ], matchdeskPort);
   closeProxy = proxy.close;
   baseUrl = `http://127.0.0.1:${proxy.port}`;
@@ -222,6 +249,7 @@ test.afterAll(async () => {
   await closeMatchdesk?.();
   billiard?.kill();
   shift?.kill();
+  gnomes?.kill();
   process.chdir(originalCwd);
   if (tempDir) fs.rmSync(tempDir, { recursive: true, force: true });
 });
@@ -445,4 +473,126 @@ test("Dreierschub gegen den Computer: eingebettet, der Computer schiebt selbst",
   await expect.poll(() => shiftMoves(fiona), { timeout: 20_000 }).toBe(2);
   await expect(frame.locator(".log li").filter({ hasText: /^Computer \(Schwer\): / })).toHaveCount(1);
   await fiona.context().close();
+});
+
+/** Hauptmenü „Spiele“ → Spieleauswahl → Gartenfehde. Alles im selben Tab. */
+async function openGnomesLobby(page: Page) {
+  await page.goto(`${baseUrl}/#`);
+  await page.getByRole("link", { name: "Spiele" }).first().click();
+  await expect(page).toHaveURL(/#games$/);
+  await expect(page.getByRole("link", { name: /Gartenfehde/ }).getByRole("img", { name: "Gartenfehde-Logo" })).toBeVisible();
+  await page.getByRole("link", { name: /Gartenfehde/ }).click();
+  await expect(page).toHaveURL(/#games\/arena\/gnomes$/);
+  await expect(page.getByRole("heading", { name: "Gartenfehde" })).toBeVisible();
+}
+
+async function gnomesMoves(page: Page) {
+  return Number(await table(page).locator(".board").getAttribute("data-moves"));
+}
+
+/**
+ * Ein Zug im eingebetteten Gartenfehde: ganzen Garten zeigen, passenden Zwerg wählen, stehen bleiben,
+ * auf `aim` zielen (sonst auf den nächsten Gegner) und abfeuern. Koordinaten kommen aus der Liste der Zwerge.
+ */
+async function gnomesTurn(page: Page, aim?: { x: number; y: number }) {
+  const frame = table(page);
+  const boardEl = frame.locator(".board");
+  await expect(boardEl).not.toHaveAttribute("data-step", "wait");
+  await frame.getByRole("button", { name: "Ganzer Garten" }).click();
+  const toScreen = async (p: { x: number; y: number }) => {
+    const [scale, ox, oy] = ((await boardEl.getAttribute("data-view")) ?? "1,0,0").split(",").map(Number) as [number, number, number];
+    const box = (await frame.locator(".board canvas").boundingBox())!;
+    return { x: box.x + ox + p.x * scale, y: box.y + oy + p.y * scale };
+  };
+  const click = async (p: { x: number; y: number }) => {
+    const s = await toScreen(p);
+    await page.mouse.click(s.x, s.y);
+  };
+  const turn = Number(await boardEl.getAttribute("data-turn"));
+  const drawn = await frame.getByTestId("drawn").getAttribute("data-type");
+  const units = await frame.locator(".unit-list li").evaluateAll((items) =>
+    items.map((li) => {
+      const d = (li as HTMLElement).dataset;
+      return { seat: Number(d.seat), type: d.type, x: Number(d.x), y: Number(d.y), hp: Number(d.hp) };
+    })
+  );
+  const me = units.find((u) => u.seat === turn && u.type === drawn && u.hp > 0)!;
+  const enemy = units.filter((u) => u.seat !== turn && u.hp > 0).sort((a, b) => Math.hypot(a.x - me.x, a.y - me.y) - Math.hypot(b.x - me.x, b.y - me.y))[0]!;
+  if ((await boardEl.getAttribute("data-step")) === "select") await click(me);
+  if ((await boardEl.getAttribute("data-step")) === "move") await click(me);
+  await expect(boardEl).toHaveAttribute("data-step", "aim");
+  await click(aim ?? enemy);
+  await frame.locator("button.fire").click();
+}
+
+test("Gartenfehde: herausfordern, eingebettet spielen, Ergebnis in Matchdesk, danach gegen den Computer", async ({ browser, page }) => {
+  await login(page, "hauptadmin");
+  await createUser(page, "gerda");
+  await createUser(page, "hugo");
+  const gerda = await playerPage(browser, "gerda");
+  const hugo = await playerPage(browser, "hugo");
+
+  await openGnomesLobby(gerda);
+  await gerda.getByRole("link", { name: "Tisch öffnen" }).click();
+  await expect(gerda).toHaveURL(/#games\/arena\/gnomes\/table$/);
+  await gerda.getByLabel("Gegner").selectOption({ label: "hugo" });
+  await gerda.getByRole("button", { name: "Herausfordern" }).click();
+  await expect(gerda).toHaveURL(/#games\/arena\/gnomes\/match\/[\w-]+$/);
+  const matchUrl = gerda.url();
+
+  await openGnomesLobby(hugo);
+  await hugo.getByRole("link", { name: "Zum Tisch" }).click();
+  await expect(hugo).toHaveURL(matchUrl);
+
+  expect(gerda.context().pages()).toHaveLength(1);
+  expect(hugo.context().pages()).toHaveLength(1);
+  for (const player of [gerda, hugo]) {
+    await expect(player.locator('iframe[title="Spieltisch"]')).toHaveAttribute("src", new RegExp(`^${GNOMES_PATH}/\\?embed=1&seat=`));
+    await expect(table(player).getByRole("application", { name: "Garten" })).toBeVisible();
+  }
+
+  // Wer am Zug ist, spritzt absichtlich daneben; der andere sieht den Zug
+  let mover: Page | null = null;
+  await expect
+    .poll(
+      async () => {
+        for (const player of [gerda, hugo]) {
+          if (await table(player).locator("p.hint", { hasText: /^Du bist dran/ }).isVisible()) mover = player;
+        }
+        return mover !== null;
+      },
+      { timeout: 20_000 }
+    )
+    .toBe(true);
+  const shooter = mover as unknown as Page;
+  const other = shooter === gerda ? hugo : gerda;
+  const otherName = other === gerda ? "gerda" : "hugo";
+  await gnomesTurn(shooter, { x: 800, y: 40 });
+  await expect.poll(() => gnomesMoves(other), { timeout: 20_000 }).toBe(1);
+  await expect(table(other).locator("p.hint", { hasText: /^Du bist dran/ })).toBeVisible({ timeout: 20_000 });
+
+  // Wer gezogen hat, gibt auf; das Ergebnis kommt über den signierten Webhook in Matchdesk an.
+  await table(shooter).getByRole("button", { name: "Aufgeben und Tisch verlassen" }).click();
+  for (const player of [other, shooter]) {
+    await expect(player.getByText(`Gewonnen: ${otherName}`).first()).toBeVisible({ timeout: 30_000 });
+  }
+
+  await gerda.context().close();
+  await hugo.context().close();
+
+  // Gegen den Computer (im selben Test, weil Matchdesk die Anmeldungen je Konto begrenzt)
+  await createUser(page, "ida");
+  const ida = await playerPage(browser, "ida");
+  await openGnomesLobby(ida);
+  await ida.getByRole("link", { name: "Tisch öffnen" }).click();
+  await ida.getByLabel("Stufe").selectOption({ label: "Mittel" });
+  await ida.getByRole("button", { name: "Partie starten" }).click();
+  await expect(ida).toHaveURL(/#games\/arena\/gnomes\/computer\/medium$/);
+  await expect(ida.locator('iframe[title="Spieltisch"]')).toHaveAttribute("src", new RegExp(`^${GNOMES_PATH}/\\?embed=1&solo=medium&name=ida$`));
+  const frame = table(ida);
+  await expect(frame.locator(".player .name").nth(1)).toContainText("Computer (Mittel)");
+  await gnomesTurn(ida);
+  await expect.poll(() => gnomesMoves(ida), { timeout: 20_000 }).toBe(2);
+  await expect(frame.locator(".log li").filter({ hasText: /^Computer \(Mittel\): / })).toHaveCount(1);
+  await ida.context().close();
 });

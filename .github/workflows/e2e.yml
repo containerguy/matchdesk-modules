@@ -1,7 +1,7 @@
 name: E2E Spiele
 
 # Pflicht-Test der Spiele-Anbindung über alle drei Repos: Matchdesk (Kern), dieses Repo (Modul arena)
-# und die Spielserver Billard und Dreierschub. Er klickt Hauptmenü „Spiele“ → Spieleauswahl → Billard, fordert heraus,
+# und die Spielserver Billard, Dreierschub und Gartenfehde. Er klickt Hauptmenü „Spiele“ → Spieleauswahl → Billard, fordert heraus,
 # spielt eingebettet einen Stoß, gibt auf und prüft das Ergebnis in Matchdesk.
 #
 # Matchdesk wird vom Branch MATCHDESK_BRANCH geholt, solange es ihn gibt, sonst von main
@@ -57,6 +57,12 @@ jobs:
           path: _e2e/matchdesk-shift
           token: ${{ secrets.E2E_REPOS_TOKEN || github.token }}
 
+      - uses: actions/checkout@v5
+        with:
+          repository: containerguy/matchdesk-gnomes
+          path: _e2e/matchdesk-gnomes
+          token: ${{ secrets.E2E_REPOS_TOKEN || github.token }}
+
       - uses: actions/setup-node@v5
         with:
           node-version: "22"
@@ -66,6 +72,7 @@ jobs:
             _e2e/Matchdesk/package-lock.json
             _e2e/matchdesk-billiard/package-lock.json
             _e2e/matchdesk-shift/package-lock.json
+            _e2e/matchdesk-gnomes/package-lock.json
 
       - name: Matchdesk bauen
         working-directory: _e2e/Matchdesk
@@ -79,6 +86,10 @@ jobs:
         working-directory: _e2e/matchdesk-shift
         run: npm ci && npm run build
 
+      - name: Gartenfehde bauen
+        working-directory: _e2e/matchdesk-gnomes
+        run: npm ci && npm run build
+
       - name: Module und Browser
         run: npm ci && npx playwright install --with-deps chromium
 
@@ -87,6 +98,7 @@ jobs:
           MATCHDESK_DIR: ${{ github.workspace }}/_e2e/Matchdesk
           BILLIARD_DIR: ${{ github.workspace }}/_e2e/matchdesk-billiard
           SHIFT_DIR: ${{ github.workspace }}/_e2e/matchdesk-shift
+          GNOMES_DIR: ${{ github.workspace }}/_e2e/matchdesk-gnomes
         run: npm run e2e
 
       - uses: actions/upload-artifact@v4

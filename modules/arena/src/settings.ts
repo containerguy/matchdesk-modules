@@ -27,7 +27,18 @@ export const settings = z.object({
     .string()
     .max(300)
     .default("")
-    .describe("Adresse des Dreierschub-Servers für den Matchdesk-Server, z. B. http://shift:3000/game-servers/shift")
+    .describe("Adresse des Dreierschub-Servers für den Matchdesk-Server, z. B. http://shift:3000/game-servers/shift"),
+  gnomesEnabled: z.boolean().default(true).describe("Gartenfehde anbieten"),
+  gnomesPath: z
+    .string()
+    .max(200)
+    .default("/game-servers/gnomes/")
+    .describe("Pfad des Gartenfehde-Servers unter derselben Adresse wie Matchdesk (Location im Reverse Proxy)"),
+  gnomesApiUrl: z
+    .string()
+    .max(300)
+    .default("")
+    .describe("Adresse des Gartenfehde-Servers für den Matchdesk-Server, z. B. http://gnomes:3000/game-servers/gnomes")
 });
 
 export type ArenaSettings = z.infer<typeof settings>;
