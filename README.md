@@ -139,8 +139,11 @@ ohne Rahmenkarte (volle Breite, für eingebettete Spiele).
 ## Modul `arena`: Spiele in Matchdesk
 
 `modules/arena` bindet Spiele mit eigenem Server ein, zuerst Billard (Repo `matchdesk-billiard`). Ablauf:
-Hauptmenü „Spiele“ → Spieleauswahl → Lobby des Spiels → Herausforderung → beide spielen im selben Tab,
-das Spiel steckt als iframe in Matchdesk (`#games/arena/billiard/match/<id>`).
+Hauptmenü „Spiele“ → Spieleauswahl → Lobby des Spiels → „Tisch öffnen“ (`#games/arena/billiard/table`).
+Dort fordert man einen Mitspieler heraus, dann spielen beide im selben Tab, das Spiel steckt als iframe in
+Matchdesk (`#games/arena/billiard/match/<id>`). Oder man startet eine Partie gegen den Computer
+(`#games/arena/billiard/computer/<easy|medium|hard>`): Sie läuft ganz im Browser
+(`<billiardPath>?embed=1&solo=<stufe>&name=<name>`) und wird nicht in Matchdesk gezählt.
 
 - Der Spielserver liegt unter derselben Adresse wie Matchdesk, im Reverse Proxy unter
   `/game-servers/billiard/` (Einstellung `billiardPath`). So greift die Sicherheitsrichtlinie von Matchdesk

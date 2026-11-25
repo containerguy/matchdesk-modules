@@ -90,10 +90,22 @@ async function openBilliardLobby(page: Page) {
   await expect(page.getByRole("heading", { name: "Billard" })).toBeVisible();
 }
 
+/** Lobby → „Tisch öffnen“: Mitspieler herausfordern oder gegen den Computer. */
+async function openTable(page: Page) {
+  await page.getByRole("link", { name: "Tisch öffnen" }).click();
+  await expect(page).toHaveURL(/#games\/arena\/billiard\/table$/);
+  await expect(page.getByRole("heading", { name: "Tisch öffnen" })).toBeVisible();
+}
+
 const BREAK_HINT = "Weiße Kugel links der Kopflinie setzen";
 
 function table(page: Page): FrameLocator {
   return page.frameLocator('iframe[title="Spieltisch"]');
+}
+
+/** Zahl der fertig ausgewerteten Stöße, wie das eingebettete Spiel sie anzeigt. */
+async function shotCount(page: Page) {
+  return Number(await table(page).locator(".controls").getAttribute("data-shots"));
 }
 
 test.beforeAll(async () => {
@@ -192,8 +204,9 @@ test("Spiele im Hauptmenü: herausfordern, eingebettet Billard spielen, Ergebnis
   const anna = await playerPage(browser, "anna");
   const bob = await playerPage(browser, "bob");
 
-  // Anna: Hauptmenü → Spieleauswahl → Billard → Bob herausfordern.
+  // Anna: Hauptmenü → Spieleauswahl → Billard → Tisch öffnen → Bob herausfordern.
   await openBilliardLobby(anna);
+  await openTable(anna);
   await anna.getByLabel("Gegner").selectOption({ label: "bob" });
   await anna.getByRole("button", { name: "Herausfordern" }).click();
   await expect(anna).toHaveURL(/#games\/arena\/billiard\/match\/[\w-]+$/);
@@ -218,7 +231,7 @@ test("Spiele im Hauptmenü: herausfordern, eingebettet Billard spielen, Ergebnis
     .poll(
       async () => {
         for (const player of [anna, bob]) {
-          if (await table(player).getByText(BREAK_HINT).isVisible()) breaker = player;
+          if (await table(player).locator(".controls .hint", { hasText: BREAK_HINT }).isVisible()) breaker = player;
         }
         return breaker !== null;
       },
@@ -247,9 +260,9 @@ test("Spiele im Hauptmenü: herausfordern, eingebettet Billard spielen, Ergebnis
     });
   await table(shooter).getByRole("button", { name: "Stoß", exact: true }).click();
 
-  // Der Stoß kommt beim Gegner an: auch dort steht er im Spielverlauf.
-  await expect(table(other).getByRole("heading", { name: "Spielverlauf" })).toBeVisible({ timeout: 30_000 });
-  await expect(table(other).getByText(BREAK_HINT)).toHaveCount(0);
+  // Der Stoß kommt beim Gegner an: dort zählt der Tisch einen ausgewerteten Stoß.
+  await expect.poll(() => shotCount(other), { timeout: 30_000 }).toBeGreaterThan(0);
+  await expect(table(other).locator(".controls .hint", { hasText: BREAK_HINT })).toHaveCount(0);
 
   // Warten, bis die Kugeln liegen, dann gibt der Anstoßende auf.
   await expect(table(shooter).getByText("Kugeln rollen …")).toHaveCount(0, { timeout: 30_000 });
@@ -265,4 +278,49 @@ test("Spiele im Hauptmenü: herausfordern, eingebettet Billard spielen, Ergebnis
 
   await anna.context().close();
   await bob.context().close();
+});
+
+test("Tisch öffnen gegen den Computer: eingebettete Partie, der Computer stößt selbst", async ({ browser, page }) => {
+  await login(page, "hauptadmin");
+  await createUser(page, "carla");
+  const carla = await playerPage(browser, "carla");
+  await openBilliardLobby(carla);
+  await openTable(carla);
+  await carla.getByLabel("Stufe").selectOption({ label: "Leicht" });
+  await carla.getByRole("button", { name: "Partie starten" }).click();
+  await expect(carla).toHaveURL(/#games\/arena\/billiard\/computer\/easy$/);
+  await expect(carla.getByText("Gegen den Computer (Leicht)")).toBeVisible();
+  expect(carla.context().pages()).toHaveLength(1);
+  await expect(carla.locator('iframe[title="Spieltisch"]')).toHaveAttribute("src", new RegExp(`^${BILLIARD_PATH}/\\?embed=1&solo=easy&name=carla$`));
+
+  const frame = table(carla);
+  await expect(frame.locator(".player .name").nth(0)).toContainText("carla");
+  await expect(frame.locator(".player .name").nth(1)).toContainText("Computer (Leicht)");
+
+  // Ungültiger Anstoß (Dreieck verfehlt): danach ist der Computer dran und stößt selbst an.
+  await expect(frame.locator(".controls .hint", { hasText: BREAK_HINT })).toBeVisible();
+  const canvas = frame.locator("canvas");
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error("Tisch nicht sichtbar");
+  await carla.mouse.click(box.x + box.width * 0.16, box.y + box.height * 0.5);
+  await expect(frame.getByText(/^Zielen:/)).toBeVisible();
+  // Zielen nach oben an die Bande, am Dreieck vorbei.
+  await carla.mouse.move(box.x + box.width * 0.16, box.y + box.height * 0.1);
+  await frame
+    .locator("#power")
+    .evaluate((input: HTMLInputElement) => {
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+      setter.call(input, "20");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  await frame.getByRole("button", { name: "Stoß", exact: true }).click();
+  await expect(frame.locator(".log li").last()).toContainText("Computer (Leicht) stößt an", { timeout: 30_000 });
+  // Der Computer stößt selbst: zweiter ausgewerteter Stoß, danach ist carla wieder am Zug.
+  await expect.poll(() => shotCount(carla), { timeout: 60_000 }).toBeGreaterThanOrEqual(2);
+  await expect(frame.locator(".player").nth(0)).toContainText("Am Zug", { timeout: 60_000 });
+
+  // Zurück führt wieder zu „Tisch öffnen“.
+  await carla.getByRole("link", { name: /Zurück/ }).click();
+  await expect(carla).toHaveURL(/#games\/arena\/billiard\/table$/);
+  await carla.context().close();
 });

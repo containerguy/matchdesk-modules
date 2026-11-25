@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import type { ModuleClientHost, ModuleNoticeProps, ModulePageProps } from "@matchdesk/module-sdk";
+import type { ModuleClientHost, ModuleClientUser, ModuleNoticeProps, ModulePageProps } from "@matchdesk/module-sdk";
 
 type Localized = { de: string; en: string };
-type Game = { id: string; name: Localized; description: Localized };
+type Game = { id: string; name: Localized; description: Localized; embedPath: string; computerLevels: string[] };
 type Side = { id: string | null; name: string | null; score: number };
 type Match = {
   id: string;
@@ -86,30 +86,7 @@ export default function createModule(host: ModuleClientHost) {
     const { games } = useGames();
     const game = games?.find((candidate) => candidate.id === gameId);
     const { data, reload } = useMatches(gameId);
-    const [players, setPlayers] = useState<Player[]>([]);
-    const [opponentId, setOpponentId] = useState("");
-    const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-      api<{ players: Player[] }>("/players")
-        .then((result) => setPlayers(result.players))
-        .catch((caught: Error) => setError(caught.message));
-    }, []);
-
-    async function challenge(event: FormEvent) {
-      event.preventDefault();
-      setBusy(true);
-      setError(null);
-      try {
-        const result = await api<{ match: Match }>("/matches", { method: "POST", body: JSON.stringify({ game: gameId, opponentId }) });
-        location.hash = `${base}/${gameId}/match/${result.match.id}`;
-      } catch (caught) {
-        setError((caught as Error).message);
-      } finally {
-        setBusy(false);
-      }
-    }
 
     async function cancel(id: string) {
       await api(`/matches/${id}/cancel`, { method: "POST" }).catch((caught: Error) => setError(caught.message));
@@ -125,21 +102,12 @@ export default function createModule(host: ModuleClientHost) {
         </p>
         <h1 id="arena-lobby-title">{game ? lang(game.name) : "…"}</h1>
         {error ? <p className="error">{error}</p> : null}
-        <form className="admin-form inline-form" onSubmit={challenge}>
-          <label htmlFor="arena-opponent">{t("lobby.opponent")}</label>
-          <select id="arena-opponent" value={opponentId} onChange={(event) => setOpponentId(event.target.value)}>
-            <option value="">{t("lobby.choose")}</option>
-            {players.map((player) => (
-              <option key={player.id} value={player.id}>
-                {player.name}
-                {player.inEvent ? ` · ${t("lobby.inEvent")}` : ""}
-              </option>
-            ))}
-          </select>
-          <button type="submit" disabled={!opponentId || busy}>
-            {t("lobby.challenge")}
-          </button>
-        </form>
+        <div className="action-row">
+          <a className="button-link" href={`${base}/${gameId}/table`}>
+            {t("lobby.openTable")}
+          </a>
+        </div>
+        <p className="muted">{t("lobby.openTableHint")}</p>
 
         <h2>{t("lobby.open")}</h2>
         {open.length === 0 ? <p className="muted empty-state">{t("lobby.noOpen")}</p> : null}
@@ -177,6 +145,131 @@ export default function createModule(host: ModuleClientHost) {
           ))}
         </ul>
       </section>
+    );
+  }
+
+  // ---------- Tisch öffnen: Mitspieler herausfordern oder gegen den Computer ----------
+
+  function TableSetup({ gameId }: { gameId: string }) {
+    const { games } = useGames();
+    const game = games?.find((candidate) => candidate.id === gameId);
+    const [players, setPlayers] = useState<Player[]>([]);
+    const [opponentId, setOpponentId] = useState("");
+    const [level, setLevel] = useState("medium");
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+      api<{ players: Player[] }>("/players")
+        .then((result) => setPlayers(result.players))
+        .catch((caught: Error) => setError(caught.message));
+    }, []);
+
+    async function challenge(event: FormEvent) {
+      event.preventDefault();
+      setBusy(true);
+      setError(null);
+      try {
+        const result = await api<{ match: Match }>("/matches", { method: "POST", body: JSON.stringify({ game: gameId, opponentId }) });
+        location.hash = `${base}/${gameId}/match/${result.match.id}`;
+      } catch (caught) {
+        setError((caught as Error).message);
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    function startComputer(event: FormEvent) {
+      event.preventDefault();
+      location.hash = `${base}/${gameId}/computer/${level}`;
+    }
+
+    if (games && !game) return <p className="error">{t("lobby.unknown")}</p>;
+    const levels = game?.computerLevels ?? [];
+    return (
+      <section className="page-card arena-table" aria-labelledby="arena-table-title">
+        <p>
+          <a href={`${base}/${gameId}`}>‹ {game ? lang(game.name) : t("nav.games")}</a>
+        </p>
+        <h1 id="arena-table-title">{t("table.title")}</h1>
+        {error ? <p className="error">{error}</p> : null}
+
+        <h2>{t("table.player")}</h2>
+        <form className="admin-form inline-form" onSubmit={challenge}>
+          <label htmlFor="arena-opponent">{t("lobby.opponent")}</label>
+          <select id="arena-opponent" value={opponentId} onChange={(event) => setOpponentId(event.target.value)}>
+            <option value="">{t("lobby.choose")}</option>
+            {players.map((player) => (
+              <option key={player.id} value={player.id}>
+                {player.name}
+                {player.inEvent ? ` · ${t("lobby.inEvent")}` : ""}
+              </option>
+            ))}
+          </select>
+          <button type="submit" disabled={!opponentId || busy}>
+            {t("lobby.challenge")}
+          </button>
+        </form>
+        <p className="muted">{t("table.playerHint")}</p>
+
+        {levels.length > 0 ? (
+          <>
+            <h2>{t("table.computer")}</h2>
+            <form className="admin-form inline-form" onSubmit={startComputer}>
+              <label htmlFor="arena-level">{t("table.level")}</label>
+              <select id="arena-level" value={level} onChange={(event) => setLevel(event.target.value)}>
+                {levels.map((id) => (
+                  <option key={id} value={id}>
+                    {t(`level.${id}`)}
+                  </option>
+                ))}
+              </select>
+              <button type="submit">{t("table.start")}</button>
+            </form>
+            <p className="muted">{t("table.computerHint")}</p>
+          </>
+        ) : null}
+      </section>
+    );
+  }
+
+  // ---------- Partie gegen den Computer (eingebettet, ohne Server) ----------
+
+  function ComputerView({ gameId, level, user }: { gameId: string; level: string; user: ModuleClientUser }) {
+    const { games, error } = useGames();
+    const game = games?.find((candidate) => candidate.id === gameId);
+    if (error) return <p className="error">{error}</p>;
+    if (!games) return <p className="muted">…</p>;
+    if (!game || !game.computerLevels.includes(level)) return <p className="error">{t("lobby.unknown")}</p>;
+    const name = user.displayName || user.username;
+    const src = `${game.embedPath}?embed=1&solo=${encodeURIComponent(level)}&name=${encodeURIComponent(name)}`;
+    return (
+      <section className="arena-match" aria-label={t("match.aria")}>
+        <div className="arena-match-bar" style={{ display: "flex", flexWrap: "wrap", gap: "8px 16px", alignItems: "center", marginBottom: 8 }}>
+          <a href={`${base}/${gameId}/table`}>‹ {t("match.back")}</a>
+          <strong>{t("computer.title", { level: t(`level.${level}`) })}</strong>
+        </div>
+        <GameFrame src={src} />
+      </section>
+    );
+  }
+
+  function GameFrame({ src }: { src: string }) {
+    return (
+      <iframe
+        title={t("match.aria")}
+        src={src}
+        allow="fullscreen"
+        style={{
+          display: "block",
+          width: "100%",
+          height: "calc(100dvh - 170px)",
+          minHeight: 420,
+          border: 0,
+          borderRadius: 12,
+          background: "#0f1a1d"
+        }}
+      />
     );
   }
 
@@ -233,28 +326,17 @@ export default function createModule(host: ModuleClientHost) {
     return (
       <section className="arena-match" aria-label={t("match.aria")}>
         {header}
-        <iframe
-          title={t("match.aria")}
-          src={match.embedUrl}
-          allow="fullscreen"
-          style={{
-            display: "block",
-            width: "100%",
-            height: "calc(100dvh - 170px)",
-            minHeight: 420,
-            border: 0,
-            borderRadius: 12,
-            background: "#0f1a1d"
-          }}
-        />
+        <GameFrame src={match.embedUrl} />
       </section>
     );
   }
 
-  function Page({ subPath }: ModulePageProps) {
+  function Page({ subPath, user }: ModulePageProps) {
     const parts = subPath.split("/").filter(Boolean);
     if (parts.length === 0) return <GamePicker />;
     if (parts[1] === "match" && parts[2]) return <MatchView key={parts[2]} gameId={parts[0]!} matchId={parts[2]} />;
+    if (parts[1] === "table") return <TableSetup key={parts[0]} gameId={parts[0]!} />;
+    if (parts[1] === "computer" && parts[2]) return <ComputerView key={parts[2]} gameId={parts[0]!} level={parts[2]} user={user} />;
     return <GameLobby key={parts[0]} gameId={parts[0]!} />;
   }
 
