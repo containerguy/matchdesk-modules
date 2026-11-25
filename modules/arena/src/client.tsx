@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent, type ReactElement } from "react";
 import type { ModuleClientHost, ModuleClientUser, ModuleNoticeProps, ModulePageProps } from "@matchdesk/module-sdk";
 
 type Localized = { de: string; en: string };
@@ -57,6 +57,26 @@ export default function createModule(host: ModuleClientHost) {
 
   // ---------- Spieleauswahl ----------
 
+  /** Eigenes Billard-Zeichen: 8er-Kugel auf grünem Tuch mit Queue, Farben wie Bandenduell. */
+  function BilliardLogo() {
+    return (
+      <svg className="arena-logo" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label={t("logo.billiard")}>
+        <rect x="2" y="2" width="60" height="60" rx="14" fill="#1E6A4B" />
+        <rect x="6" y="6" width="52" height="52" rx="11" fill="none" stroke="#2F8A63" strokeWidth="2" />
+        <line x1="9" y1="55" x2="27" y2="38" stroke="#F2A93B" strokeWidth="4" strokeLinecap="round" />
+        <line x1="9" y1="55" x2="14" y2="50" stroke="#7A4B1E" strokeWidth="4" strokeLinecap="round" />
+        <circle cx="37" cy="28" r="16" fill="#15171A" />
+        <circle cx="37" cy="28" r="7.5" fill="#FFFFFF" />
+        <text x="37" y="31.6" textAnchor="middle" fontSize="10" fontWeight="700" fontFamily="system-ui, sans-serif" fill="#15171A">
+          8
+        </text>
+        <ellipse cx="30" cy="20" rx="4" ry="2.4" fill="#FFFFFF" opacity="0.35" transform="rotate(-35 30 20)" />
+      </svg>
+    );
+  }
+
+  const LOGOS: Record<string, () => ReactElement> = { billiard: BilliardLogo };
+
   function GamePicker() {
     const { games, error } = useGames();
     if (error) return <p className="error">{error}</p>;
@@ -70,6 +90,7 @@ export default function createModule(host: ModuleClientHost) {
           {games.map((game) => (
             <li key={game.id}>
               <a className="games-tile" href={`${base}/${game.id}`}>
+                {LOGOS[game.id] ? LOGOS[game.id]!() : null}
                 <strong>{lang(game.name)}</strong>
                 <span className="muted">{lang(game.description)}</span>
               </a>

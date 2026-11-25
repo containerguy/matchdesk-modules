@@ -85,6 +85,7 @@ async function openBilliardLobby(page: Page) {
   await page.getByRole("link", { name: "Spiele" }).first().click();
   await expect(page).toHaveURL(/#games$/);
   await expect(page.getByRole("heading", { name: "Spiele" })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Billard/ }).getByRole("img", { name: "Billard-Logo" })).toBeVisible();
   await page.getByRole("link", { name: /Billard/ }).click();
   await expect(page).toHaveURL(/#games\/arena\/billiard$/);
   await expect(page.getByRole("heading", { name: "Billard" })).toBeVisible();

@@ -35,5 +35,6 @@
   "level.easy": "Easy",
   "level.medium": "Medium",
   "level.hard": "Hard",
-  "computer.title": "Against the computer ({level})"
+  "computer.title": "Against the computer ({level})",
+  "logo.billiard": "Billiards logo"
 }
