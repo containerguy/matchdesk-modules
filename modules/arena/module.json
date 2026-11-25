@@ -2,8 +2,8 @@
   "id": "arena",
   "name": { "de": "Spiele", "en": "Games" },
   "description": {
-    "de": "Spiele direkt in Matchdesk: Mitspieler herausfordern und die Partie eingebettet spielen, ohne neuen Tab. Zuerst Billard.",
-    "en": "Play games right inside Matchdesk: challenge someone and play embedded, no new tab. Billiards first."
+    "de": "Spiele direkt in Matchdesk: Mitspieler herausfordern und eingebettet spielen, ohne neuen Tab: Billard und Dreierschub.",
+    "en": "Play games right inside Matchdesk: challenge someone and play embedded, no new tab. Billiards and Triple Shift."
   },
   "author": "Matchdesk",
   "homepage": "https://github.com/containerguy/matchdesk-modules/tree/main/modules/arena",
@@ -34,6 +34,6 @@
     }
   ],
   "startNotice": true,
-  "secrets": ["BILLIARD_API_KEY", "BILLIARD_WEBHOOK_SECRET"],
+  "secrets": ["BILLIARD_API_KEY", "BILLIARD_WEBHOOK_SECRET", "SHIFT_API_KEY", "SHIFT_WEBHOOK_SECRET"],
   "tables": ["arena_matches"]
 }

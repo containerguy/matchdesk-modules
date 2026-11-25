@@ -75,7 +75,21 @@ export default function createModule(host: ModuleClientHost) {
     );
   }
 
-  const LOGOS: Record<string, () => ReactElement> = { billiard: BilliardLogo };
+  /** Dreierschub-Zeichen: vier Steine, einer wird von rechts eingeschoben. */
+  function ShiftLogo() {
+    return (
+      <svg className="arena-logo" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label={t("logo.shift")}>
+        <rect x="2" y="2" width="60" height="60" rx="14" fill="#13353A" />
+        <rect x="10" y="12" width="17" height="17" rx="4" fill="#2BA6A0" />
+        <rect x="30" y="12" width="17" height="17" rx="4" fill="#2BA6A0" />
+        <rect x="10" y="33" width="17" height="17" rx="4" fill="#2BA6A0" />
+        <rect x="30" y="33" width="17" height="17" rx="4" fill="#F0823C" />
+        <path d="M57 41.5h-6m0 0 3-3m-3 3 3 3" stroke="#E9F0EE" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+
+  const LOGOS: Record<string, () => ReactElement> = { billiard: BilliardLogo, shift: ShiftLogo };
 
   function GamePicker() {
     const { games, error } = useGames();
