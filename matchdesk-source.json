@@ -9,10 +9,17 @@
         "en": "Games"
       },
       "description": {
-        "de": "Spiele direkt in Matchdesk: Mitspieler herausfordern und die Partie eingebettet spielen, ohne neuen Tab. Zuerst Billard.",
-        "en": "Play games right inside Matchdesk: challenge someone and play embedded, no new tab. Billiards first."
+        "de": "Spiele in Matchdesk: herausfordern und eingebettet spielen, ohne neuen Tab. Billard, Dreierschub, Gartenfehde.",
+        "en": "Games inside Matchdesk: challenge someone, play embedded, no new tab. Billiards, Triple Shift, Garden Feud."
       },
       "versions": [
+        {
+          "version": "1.3.0",
+          "matchdeskApi": 1,
+          "url": "https://github.com/containerguy/matchdesk-modules/releases/download/arena-v1.3.0/arena-1.3.0.tgz",
+          "sha256": "10e2660d0be77abd0e42beeb2d3a80c9e83cc2651e23754fa9f0d3ef20807c73",
+          "publishedAt": "2026-11-25T22:03:33.377Z"
+        },
         {
           "version": "1.1.1",
           "matchdeskApi": 1,
