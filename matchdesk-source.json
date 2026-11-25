@@ -14,6 +14,13 @@
       },
       "versions": [
         {
+          "version": "1.1.1",
+          "matchdeskApi": 1,
+          "url": "https://github.com/containerguy/matchdesk-modules/releases/download/arena-v1.1.1/arena-1.1.1.tgz",
+          "sha256": "7b86433c763e415590c223d89632e764a3c67fbedef3a49b2819cb570363df62",
+          "publishedAt": "2026-11-25T18:44:58.995Z"
+        },
+        {
           "version": "1.1.0",
           "matchdeskApi": 1,
           "url": "https://github.com/containerguy/matchdesk-modules/releases/download/arena-v1.1.0/arena-1.1.0.tgz",
