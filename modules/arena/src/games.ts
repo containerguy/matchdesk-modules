@@ -30,6 +30,17 @@ export const GAMES: GameDef[] = [
     apiKeySecret: "BILLIARD_API_KEY",
     webhookSecret: "BILLIARD_WEBHOOK_SECRET",
     computerLevels: ["easy", "medium", "hard"]
+  },
+  {
+    id: "shift",
+    name: { de: "Dreierschub", en: "Triple Shift" },
+    description: { de: "Steine einschieben, Dreierreihen räumen. Für zwei, auch auf dem Handy.", en: "Push tiles in, clear lines of three. For two, phones included." },
+    path: (s) => s.shiftPath,
+    apiUrl: (s) => s.shiftApiUrl,
+    enabled: (s) => s.shiftEnabled,
+    apiKeySecret: "SHIFT_API_KEY",
+    webhookSecret: "SHIFT_WEBHOOK_SECRET",
+    computerLevels: ["easy", "medium", "hard"]
   }
 ];
 

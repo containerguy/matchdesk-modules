@@ -24,13 +24,18 @@ const repoRoot = path.resolve(here, "..");
 const MATCHDESK_DIR = path.resolve(process.env.MATCHDESK_DIR ?? path.join(repoRoot, "../Matchdesk"));
 const BILLIARD_DIR = path.resolve(process.env.BILLIARD_DIR ?? path.join(repoRoot, "../matchdesk-billiard"));
 const BILLIARD_PATH = "/game-servers/billiard";
+const SHIFT_DIR = path.resolve(process.env.SHIFT_DIR ?? path.join(repoRoot, "../matchdesk-shift"));
+const SHIFT_PATH = "/game-servers/shift";
 const API_KEY = `e2e-key-${randomUUID()}`;
 const WEBHOOK_SECRET = `e2e-secret-${randomUUID()}`;
+const SHIFT_API_KEY = `e2e-shift-key-${randomUUID()}`;
+const SHIFT_WEBHOOK_SECRET = `e2e-shift-secret-${randomUUID()}`;
 
 let tempDir: string;
 let matchdeskServer: http.Server;
 let closeMatchdesk: () => Promise<void>;
 let billiard: ChildProcess;
+let shift: ChildProcess;
 let closeProxy: () => Promise<void>;
 let baseUrl: string;
 const originalCwd = process.cwd();
@@ -112,7 +117,8 @@ async function shotCount(page: Page) {
 test.beforeAll(async () => {
   for (const [name, dir] of [
     ["MATCHDESK_DIR", path.join(MATCHDESK_DIR, "dist/index.html")],
-    ["BILLIARD_DIR", path.join(BILLIARD_DIR, "apps/client/dist/index.html")]
+    ["BILLIARD_DIR", path.join(BILLIARD_DIR, "apps/client/dist/index.html")],
+    ["SHIFT_DIR", path.join(SHIFT_DIR, "apps/client/dist/index.html")]
   ]) {
     if (!fs.existsSync(dir)) throw new Error(`${name}: ${dir} fehlt. Erst bauen (siehe README, Abschnitt E2E).`);
   }
@@ -122,6 +128,7 @@ test.beforeAll(async () => {
 
   const matchdeskPort = await freePort();
   const billiardPort = await freePort();
+  const shiftPort = await freePort();
 
   // Billard-Server, wie im Betrieb unter einem Unterpfad.
   billiard = spawn(process.execPath, ["--import", "tsx", "apps/server/src/index.ts"], {
@@ -137,6 +144,20 @@ test.beforeAll(async () => {
   });
   await waitForHttp(`http://127.0.0.1:${billiardPort}${BILLIARD_PATH}/health`);
 
+  // Dreierschub-Server, ebenso unter einem Unterpfad, mit eigenen Schlüsseln.
+  shift = spawn(process.execPath, ["--import", "tsx", "apps/server/src/index.ts"], {
+    cwd: SHIFT_DIR,
+    env: {
+      ...process.env,
+      PORT: String(shiftPort),
+      BASE_PATH: SHIFT_PATH,
+      INTEGRATION_API_KEY: SHIFT_API_KEY,
+      INTEGRATION_WEBHOOK_SECRET: SHIFT_WEBHOOK_SECRET
+    },
+    stdio: ["ignore", "inherit", "inherit"]
+  });
+  await waitForHttp(`http://127.0.0.1:${shiftPort}${SHIFT_PATH}/health`);
+
   // Matchdesk im Testprozess. Der Kern liefert dist/ relativ zum Arbeitsverzeichnis aus.
   Object.assign(process.env, {
     MATCHDESK_DB_PATH: path.join(tempDir, "matchdesk.sqlite"),
@@ -147,7 +168,9 @@ test.beforeAll(async () => {
     MATCHDESK_MAIL_MODE: "console",
     MATCHDESK_DEV_LOGIN_CODE: "123456",
     MATCHDESK_BILLIARD_API_KEY: API_KEY,
-    MATCHDESK_BILLIARD_WEBHOOK_SECRET: WEBHOOK_SECRET
+    MATCHDESK_BILLIARD_WEBHOOK_SECRET: WEBHOOK_SECRET,
+    MATCHDESK_SHIFT_API_KEY: SHIFT_API_KEY,
+    MATCHDESK_SHIFT_WEBHOOK_SECRET: SHIFT_WEBHOOK_SECRET
   });
   delete process.env.MATCHDESK_STORAGE_BACKEND;
   delete process.env.MATCHDESK_VAPID_PUBLIC_KEY;
@@ -171,14 +194,19 @@ test.beforeAll(async () => {
     settings: {
       callbackBaseUrl: `http://127.0.0.1:${matchdeskPort}`,
       billiardApiUrl: `http://127.0.0.1:${billiardPort}${BILLIARD_PATH}`,
-      billiardPath: `${BILLIARD_PATH}/`
+      billiardPath: `${BILLIARD_PATH}/`,
+      shiftApiUrl: `http://127.0.0.1:${shiftPort}${SHIFT_PATH}`,
+      shiftPath: `${SHIFT_PATH}/`
     }
   });
   matchdeskServer = started.app.listen(matchdeskPort, "127.0.0.1");
   await new Promise<void>((resolve) => matchdeskServer.once("listening", resolve));
 
   // Vorne der Proxy (Rolle des Nginx Proxy Manager).
-  const proxy = await startProxy([{ prefix: `${BILLIARD_PATH}/`, port: billiardPort }], matchdeskPort);
+  const proxy = await startProxy([
+    { prefix: `${BILLIARD_PATH}/`, port: billiardPort },
+    { prefix: `${SHIFT_PATH}/`, port: shiftPort }
+  ], matchdeskPort);
   closeProxy = proxy.close;
   baseUrl = `http://127.0.0.1:${proxy.port}`;
 });
@@ -193,6 +221,7 @@ test.afterAll(async () => {
   }
   await closeMatchdesk?.();
   billiard?.kill();
+  shift?.kill();
   process.chdir(originalCwd);
   if (tempDir) fs.rmSync(tempDir, { recursive: true, force: true });
 });
@@ -324,4 +353,96 @@ test("Tisch öffnen gegen den Computer: eingebettete Partie, der Computer stöß
   await carla.getByRole("link", { name: /Zurück/ }).click();
   await expect(carla).toHaveURL(/#games\/arena\/billiard\/table$/);
   await carla.context().close();
+});
+
+/** Hauptmenü „Spiele“ → Spieleauswahl → Dreierschub. Alles im selben Tab. */
+async function openShiftLobby(page: Page) {
+  await page.goto(`${baseUrl}/#`);
+  await page.getByRole("link", { name: "Spiele" }).first().click();
+  await expect(page).toHaveURL(/#games$/);
+  await expect(page.getByRole("link", { name: /Dreierschub/ }).getByRole("img", { name: "Dreierschub-Logo" })).toBeVisible();
+  await page.getByRole("link", { name: /Dreierschub/ }).click();
+  await expect(page).toHaveURL(/#games\/arena\/shift$/);
+  await expect(page.getByRole("heading", { name: "Dreierschub" })).toBeVisible();
+}
+
+/** Zahl der ausgewerteten Züge, wie das eingebettete Spiel sie anzeigt. */
+async function shiftMoves(page: Page) {
+  return Number(await table(page).locator(".board").getAttribute("data-moves"));
+}
+
+test("Dreierschub: herausfordern, eingebettet schieben, Ergebnis in Matchdesk", async ({ browser, page }) => {
+  await login(page, "hauptadmin");
+  await createUser(page, "dora");
+  await createUser(page, "emil");
+  const dora = await playerPage(browser, "dora");
+  const emil = await playerPage(browser, "emil");
+
+  await openShiftLobby(dora);
+  await dora.getByRole("link", { name: "Tisch öffnen" }).click();
+  await expect(dora).toHaveURL(/#games\/arena\/shift\/table$/);
+  await dora.getByLabel("Gegner").selectOption({ label: "emil" });
+  await dora.getByRole("button", { name: "Herausfordern" }).click();
+  await expect(dora).toHaveURL(/#games\/arena\/shift\/match\/[\w-]+$/);
+  const matchUrl = dora.url();
+
+  await openShiftLobby(emil);
+  await emil.getByRole("link", { name: "Zum Tisch" }).click();
+  await expect(emil).toHaveURL(matchUrl);
+
+  expect(dora.context().pages()).toHaveLength(1);
+  expect(emil.context().pages()).toHaveLength(1);
+  for (const player of [dora, emil]) {
+    await expect(player.locator('iframe[title="Spieltisch"]')).toHaveAttribute("src", new RegExp(`^${SHIFT_PATH}/\\?embed=1&seat=`));
+    await expect(table(player).getByRole("grid", { name: "Spielfeld" })).toBeVisible();
+  }
+
+  // Wer ist am Zug? Der schiebt einmal, der andere sieht den Zug.
+  let mover: Page | null = null;
+  await expect
+    .poll(
+      async () => {
+        for (const player of [dora, emil]) {
+          if (await table(player).locator("p.hint", { hasText: /^Du bist dran/ }).isVisible()) mover = player;
+        }
+        return mover !== null;
+      },
+      { timeout: 20_000 }
+    )
+    .toBe(true);
+  const pusher = mover as unknown as Page;
+  const other = pusher === dora ? emil : dora;
+  const otherName = other === dora ? "dora" : "emil";
+  await table(pusher).locator('.arrow[data-move="left-2"]').click();
+  await expect.poll(() => shiftMoves(other), { timeout: 20_000 }).toBe(1);
+  await expect(table(other).locator("p.hint", { hasText: /^Du bist dran/ })).toBeVisible({ timeout: 20_000 });
+
+  // Wer geschoben hat, gibt auf; das Ergebnis kommt über den signierten Webhook in Matchdesk an.
+  await table(pusher).getByRole("button", { name: "Aufgeben und Tisch verlassen" }).click();
+  for (const player of [other, pusher]) {
+    await expect(player.getByText(`Gewonnen: ${otherName}`).first()).toBeVisible({ timeout: 30_000 });
+  }
+  await other.goto(`${baseUrl}/#games/arena/shift`);
+  await expect(other.getByText(`Gewonnen: ${otherName}`)).toBeVisible();
+
+  await dora.context().close();
+  await emil.context().close();
+});
+
+test("Dreierschub gegen den Computer: eingebettet, der Computer schiebt selbst", async ({ browser, page }) => {
+  await login(page, "hauptadmin");
+  await createUser(page, "fiona");
+  const fiona = await playerPage(browser, "fiona");
+  await openShiftLobby(fiona);
+  await fiona.getByRole("link", { name: "Tisch öffnen" }).click();
+  await fiona.getByLabel("Stufe").selectOption({ label: "Schwer" });
+  await fiona.getByRole("button", { name: "Partie starten" }).click();
+  await expect(fiona).toHaveURL(/#games\/arena\/shift\/computer\/hard$/);
+  await expect(fiona.locator('iframe[title="Spieltisch"]')).toHaveAttribute("src", new RegExp(`^${SHIFT_PATH}/\\?embed=1&solo=hard&name=fiona$`));
+  const frame = table(fiona);
+  await expect(frame.locator(".player .name").nth(1)).toContainText("Computer (Schwer)");
+  await frame.locator('.arrow[data-move="top-1"]').click();
+  await expect.poll(() => shiftMoves(fiona), { timeout: 20_000 }).toBe(2);
+  await expect(frame.locator(".log li").filter({ hasText: /^Computer \(Schwer\): / })).toHaveCount(1);
+  await fiona.context().close();
 });
