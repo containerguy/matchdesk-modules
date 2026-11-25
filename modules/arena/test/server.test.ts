@@ -98,6 +98,37 @@ describe("Modul Spiele (arena)", () => {
     await request(module.app).post("/api/m/arena/webhook/shift").set(ok.headers).send(ok.raw).expect(204);
   });
 
+  it("bietet Gartenfehde mit eigenen Schlüsseln an und ruft dessen Server", async () => {
+    module = await createTestModule({
+      moduleDir,
+      register,
+      settings: { ...settings, shiftApiUrl: "http://shift:3000/game-servers/shift", gnomesApiUrl: "http://gnomes:3000/game-servers/gnomes" },
+      secrets: { ...secrets, SHIFT_API_KEY: "shift-key", SHIFT_WEBHOOK_SECRET: "shift-hook", GNOMES_API_KEY: "gnomes-key", GNOMES_WEBHOOK_SECRET: "gnomes-hook" }
+    });
+    const games = await request(module.app).get("/api/m/arena/games").set("x-test-user", "anna").expect(200);
+    expect(games.body.games.map((g: { id: string }) => g.id)).toEqual(["billiard", "shift", "gnomes"]);
+    expect(games.body.games[2]).toMatchObject({ embedPath: "/game-servers/gnomes/", computerLevels: ["easy", "medium", "hard"] });
+
+    const calls = fakeGameServer(module);
+    const res = await request(module.app).post("/api/m/arena/matches").set("x-test-user", "anna").send({ game: "gnomes", opponentId: "u-max" }).expect(201);
+    expect(calls[0]).toMatchObject({
+      url: "http://gnomes:3000/game-servers/gnomes/api/integrations/v1/tables",
+      method: "POST",
+      auth: "Bearer gnomes-key",
+      body: { callbackUrl: "http://matchdesk:3000/api/m/arena/webhook/gnomes" }
+    });
+    expect(res.body.match.embedUrl).toBe("/game-servers/gnomes/?embed=1&seat=tok-u-anna");
+
+    const event = {
+      type: "game.finished",
+      table: { id: "tbl-1", ref: res.body.match.id, status: "finished", winner: "u-max", gamesPlayed: 1, players: [{ id: "u-anna", score: 0 }, { id: "u-max", score: 1 }] }
+    };
+    const wrong = signed(event, "shift-hook");
+    await request(module.app).post("/api/m/arena/webhook/gnomes").set(wrong.headers).send(wrong.raw).expect(401);
+    const ok = signed(event, "gnomes-hook");
+    await request(module.app).post("/api/m/arena/webhook/gnomes").set(ok.headers).send(ok.raw).expect(204);
+  });
+
   it("legt bei einer Herausforderung einen reservierten Tisch an und gibt nur eigene Platz-Links heraus", async () => {
     module = await createTestModule({ moduleDir, register, settings, secrets });
     const calls = fakeGameServer(module);

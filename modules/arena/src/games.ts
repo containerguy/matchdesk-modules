@@ -41,6 +41,20 @@ export const GAMES: GameDef[] = [
     apiKeySecret: "SHIFT_API_KEY",
     webhookSecret: "SHIFT_WEBHOOK_SECRET",
     computerLevels: ["easy", "medium", "hard"]
+  },
+  {
+    id: "gnomes",
+    name: { de: "Gartenfehde", en: "Garden Feud" },
+    description: {
+      de: "Gartenzwerge im Schrebergarten: laufen, zielen, nass machen. Für zwei, auch auf dem Handy.",
+      en: "Garden gnomes in the allotment: move, aim, soak. For two, phones included."
+    },
+    path: (s) => s.gnomesPath,
+    apiUrl: (s) => s.gnomesApiUrl,
+    enabled: (s) => s.gnomesEnabled,
+    apiKeySecret: "GNOMES_API_KEY",
+    webhookSecret: "GNOMES_WEBHOOK_SECRET",
+    computerLevels: ["easy", "medium", "hard"]
   }
 ];
 
